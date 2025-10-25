@@ -127,7 +127,6 @@ export default function Rangliste() {
     // In Produktion: Daten von Google Sheets holen
     setPlayers(mockPlayers);
     setChartData(mockChartData);
-    setLoading(false);
   }, []);
 
   const progressToGoal = (bankroll: number) => {
