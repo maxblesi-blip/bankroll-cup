@@ -15,6 +15,7 @@ interface PlayerData {
 export default function BankrollUpdatePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [authorized, setAuthorized] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingPlayer, setLoadingPlayer] = useState(true);
   const [error, setError] = useState("");
@@ -25,19 +26,37 @@ export default function BankrollUpdatePage() {
     notes: "",
   });
 
-  // Überprüfe ob User authentifiziert ist
+  // ✅ Überprüfe ob User authentifiziert ist UND die richtige Rolle hat
   useEffect(() => {
     if (status === "unauthenticated") {
+      console.warn("⚠️  User nicht authentifiziert - Redirect zu Home");
       router.push("/");
+      return;
     }
-  }, [status, router]);
+
+    if (status === "authenticated") {
+      // ✅ Prüfe ob User die richtige Rolle hat (player, mod, admin)
+      const user = session?.user as any;
+      const validRoles = ["player", "mod", "admin"];
+      
+      if (!validRoles.includes(user?.role)) {
+        console.error(`❌ User hat keine Berechtigung! Rolle: ${user?.role}`);
+        setAuthorized(false);
+        router.push("/");
+        return;
+      }
+
+      console.log(`✅ User autorisiert! Rolle: ${user?.role}`);
+      setAuthorized(true);
+    }
+  }, [status, session, router]);
 
   // ✅ Lade Spielerdaten aus Leaderboard
   useEffect(() => {
-    if (status === "authenticated" && session?.user) {
+    if (authorized && session?.user) {
       loadPlayerData();
     }
-  }, [status, session]);
+  }, [authorized, session]);
 
   const loadPlayerData = async () => {
     try {
@@ -105,6 +124,18 @@ export default function BankrollUpdatePage() {
         <div className="flex flex-col items-center gap-4">
           <Loader size={32} className="animate-spin text-purple-400" />
           <p className="text-slate-300">Wird geladen...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Nicht autorisiert - wird weitergeleitet
+  if (!authorized) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center px-4">
+        <div className="flex flex-col items-center gap-4">
+          <Loader size={32} className="animate-spin text-red-400" />
+          <p className="text-slate-300">Du hast keine Berechtigung für diese Seite...</p>
         </div>
       </div>
     );
@@ -255,9 +286,9 @@ export default function BankrollUpdatePage() {
 
         {/* Form */}
         <form
-  onSubmit={handleSubmit}
-  className="bg-slate-800 border border-slate-700 rounded-lg p-8 space-y-6"
->
+          onSubmit={handleSubmit}
+          className="bg-slate-800 border border-slate-700 rounded-lg p-8 space-y-6"
+        >
           {/* Current Bankroll */}
           <div>
             <label className="block text-sm font-bold mb-2">

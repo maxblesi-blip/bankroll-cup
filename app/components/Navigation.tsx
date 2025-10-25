@@ -102,16 +102,19 @@ export default function Navigation() {
                     <p className="font-bold text-white">{user?.name}</p>
                   </div>
 
-                  {/* Bankroll Update Link */}
-                  <button
-                    onClick={() => {
-                      window.location.href = "/bankroll-update";
-                      setShowMenu(false);
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-slate-700 text-blue-400 border-b border-slate-700 font-bold"
-                  >
-                    💰 Bankroll aktualisieren
-                  </button>
+                  {/* Bankroll Update Link - nur für player, mod, admin UND im Leaderboard */}
+                  {isInLeaderboard && 
+                    (user?.role === "player" || user?.role === "mod" || user?.role === "admin") && (
+                    <button
+                      onClick={() => {
+                        window.location.href = "/bankroll-update";
+                        setShowMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-slate-700 text-blue-400 border-b border-slate-700 font-bold"
+                    >
+                      💰 Bankroll aktualisieren
+                    </button>
+                  )}
 
                   {/* Admin Link - nur wenn Admin/Mod */}
                   {(user?.role === "admin" || user?.role === "mod") && (
@@ -202,13 +205,16 @@ export default function Navigation() {
             </Link>
           )}
 
-          {/* Mobile Bankroll Update */}
-          <Link
-            href="/bankroll-update"
-            className="block text-blue-400 hover:text-blue-300 py-2 font-bold border-b border-slate-700 mb-2"
-          >
-            💰 Bankroll aktualisieren
-          </Link>
+          {/* Mobile Bankroll Update - nur für player, mod, admin UND im Leaderboard */}
+          {isInLeaderboard && 
+            (user?.role === "player" || user?.role === "mod" || user?.role === "admin") && (
+            <Link
+              href="/bankroll-update"
+              className="block text-blue-400 hover:text-blue-300 py-2 font-bold border-b border-slate-700 mb-2"
+            >
+              💰 Bankroll aktualisieren
+            </Link>
+          )}
 
           {/* Mobile Admin Link */}
           {(user?.role === "admin" || user?.role === "mod") && (
