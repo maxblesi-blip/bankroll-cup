@@ -11,7 +11,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  BarChart,
   Bar,
 } from "recharts";
 import { TrendingUp, Calendar } from "lucide-react";
