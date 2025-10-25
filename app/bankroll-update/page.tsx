@@ -255,10 +255,9 @@ export default function BankrollUpdatePage() {
 
         {/* Form */}
         <form
-          onSubmit={handleSubmit}
-          className="bg-slate-800 border border-slate-700 rounded-lg p-8 space-y-6"
-          disabled={!playerData}
-        >
+  onSubmit={handleSubmit}
+  className="bg-slate-800 border border-slate-700 rounded-lg p-8 space-y-6"
+>
           {/* Current Bankroll */}
           <div>
             <label className="block text-sm font-bold mb-2">
