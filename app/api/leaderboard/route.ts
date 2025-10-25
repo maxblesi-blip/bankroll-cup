@@ -444,7 +444,7 @@ async function updateHistoricalData(auth: any, sheets: any) {
     // Erstelle Zeile für heute
     const historyRow = [today];
     rows.forEach((row: string[]) => {
-      historyRow.push(parseFloat(row[5]) || 0); // Bankroll ist in Spalte F (Index 5)
+      historyRow.push(String(parseFloat(row[5]) || 0));
     });
 
     // Füge zu History hinzu
