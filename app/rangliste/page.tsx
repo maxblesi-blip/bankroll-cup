@@ -34,7 +34,6 @@ export default function Rangliste() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [timeframe, setTimeframe] = useState("week");
-  const [loading, setLoading] = useState(true);
 
   // Mock Daten - würde von Google Sheets kommen
   const mockPlayers: Player[] = [
