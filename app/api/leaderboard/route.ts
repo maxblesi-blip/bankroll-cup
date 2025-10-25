@@ -73,44 +73,7 @@ async function sheetExists(auth: any, sheetName: string): Promise<boolean> {
   }
 }
 
-// Hole neueste genehmigte Bankroll für einen Spieler (basierend auf Email/UserID)
-async function _getLatestApprovedBankroll(
-  sheets: any,
-  auth: any,
-  userEmail: string
-): Promise<number | null> {
-  try {
-    const response = await sheets.spreadsheets.values.get({
-      auth,
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: `${BANKROLL_SHEET_NAME}!A2:H1000`,
-    });
 
-    const rows = response.data.values || [];
-
-    // Filter: UserID/Email (Spalte B, Index 1) === userEmail UND Status (Spalte G, Index 6) === "approved"
-    const approvedUpdates = rows.filter((row: string[]) => {
-      const rowEmail = row[1]?.toString().toLowerCase().trim();
-      const status = row[6]?.toString().toLowerCase().trim();
-      return rowEmail === userEmail.toLowerCase().trim() && status === "approved";
-    });
-
-    if (approvedUpdates.length === 0) {
-      console.log(`   ℹ️  Keine approved Bankroll-Updates für Email ${userEmail}`);
-      return null;
-    }
-
-    // Nimm den letzten (neuesten) Eintrag
-    const latestUpdate = approvedUpdates[approvedUpdates.length - 1];
-    const bankroll = parseFloat(latestUpdate[3]) || 0; // Spalte D, Index 3
-
-    console.log(`   ✅ Gefunden: €${bankroll}`);
-    return bankroll;
-  } catch (error) {
-    console.error(`   ❌ Error getting bankroll for Email ${userEmail}:`, error);
-    return null;
-  }
-}
 
 async function getHistoricalData(auth: any): Promise<ChartData[]> {
   try {
