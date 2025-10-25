@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { Menu, LogOut, X } from "lucide-react";
 import Link from "next/link";
@@ -8,8 +8,38 @@ import Link from "next/link";
 export default function Navigation() {
   const { data: session } = useSession();
   const [showMenu, setShowMenu] = useState(false);
+  const [isInLeaderboard, setIsInLeaderboard] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const user = session?.user as any;
+
+  // ✅ Lade Leaderboard und prüfe ob User darin ist
+  useEffect(() => {
+    if (!user?.email) {
+      setLoading(false);
+      return;
+    }
+
+    const checkLeaderboard = async () => {
+      try {
+        const res = await fetch("/api/leaderboard");
+        const data = await res.json();
+        
+        // Prüfe ob User-Email im Leaderboard ist
+        const found = data.players?.some(
+          (p: any) => p.email?.toLowerCase() === user.email?.toLowerCase()
+        );
+        
+        setIsInLeaderboard(!!found);
+      } catch (error) {
+        console.error("Fehler beim Laden Leaderboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkLeaderboard();
+  }, [user?.email]);
 
   return (
     <nav className="bg-slate-900 border-b border-slate-700 sticky top-0 z-40">
@@ -42,12 +72,16 @@ export default function Navigation() {
           >
             📋 Regeln
           </Link>
-          <Link
-            href="/anmeldung"
-            className="text-slate-300 hover:text-purple-400 transition font-bold"
-          >
-            📝 Anmeldung
-          </Link>
+          
+          {/* ✅ ANMELDUNG - nur anzeigen wenn NOT im Leaderboard */}
+          {!isInLeaderboard && !loading && (
+            <Link
+              href="/anmeldung"
+              className="text-slate-300 hover:text-purple-400 transition font-bold"
+            >
+              📝 Anmeldung
+            </Link>
+          )}
 
           {/* User Auth */}
           {session ? (
@@ -157,12 +191,16 @@ export default function Navigation() {
           >
             📋 Regeln
           </Link>
-          <Link
-            href="/anmeldung"
-            className="block text-slate-300 hover:text-purple-400 py-2 font-bold border-b border-slate-700 mb-2 pb-2"
-          >
-            📝 Anmeldung
-          </Link>
+          
+          {/* ✅ ANMELDUNG Mobile - nur anzeigen wenn NOT im Leaderboard */}
+          {!isInLeaderboard && !loading && (
+            <Link
+              href="/anmeldung"
+              className="block text-slate-300 hover:text-purple-400 py-2 font-bold border-b border-slate-700 mb-2 pb-2"
+            >
+              📝 Anmeldung
+            </Link>
+          )}
 
           {/* Mobile Bankroll Update */}
           <Link
