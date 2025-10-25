@@ -35,7 +35,7 @@ async function getSheetId(auth: any, sheetName: string): Promise<number | null> 
 
 const SHEET_NAME = "Leaderboard";
 const HISTORY_SHEET_NAME = "LeaderboardHistory";
-const BANKROLL_SHEET_NAME = "Bankroll-Updates";
+// const BANKROLL_SHEET_NAME = "Bankroll-Updates";
 
 interface Player {
   rank: number;
