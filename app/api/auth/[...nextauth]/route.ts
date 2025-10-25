@@ -179,10 +179,10 @@ const handler = NextAuth({
   callbacks: {
     async jwt({ token, account, profile }) {
       // Initial Login: Discord ID und Daten speichern
-      if (account?.provider === "discord" && profile?.id) {
-        token.discordId = profile.id;
-        token.discordUsername = profile.username;
-        token.discordEmail = profile.email;
+      if (account?.provider === "discord" && (profile as any)?.id) {
+        token.discordId = (profile as any).id;
+token.discordUsername = (profile as any).username;
+token.discordEmail = (profile as any).email;
         token.discordImage = profile.image;
 
         console.log(`📝 [JWT] Discord Profile gespeichert:`);
