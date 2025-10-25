@@ -114,47 +114,7 @@ const fetchUserRole = async (userId: string): Promise<string> => {
   }
 };
 
-// ============= GOOGLE SHEETS INTEGRATION =============
 
-async function syncUserToSheets(
-  discordId: string,
-  discordUsername: string,
-  discordEmail: string
-): Promise<void> {
-  try {
-    console.log(`\n📊 [SHEETS] Synce User zu Google Sheets...`);
-    console.log(`   Discord ID: ${discordId}`);
-    console.log(`   Username: ${discordUsername}`);
-    console.log(`   Email: ${discordEmail}`);
-
-    // Rufe Sync API auf (auf dem Server, nicht im Client)
-    const response = await fetch(
-      `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/sync-user`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          discordId,
-          discordUsername,
-          discordEmail,
-        }),
-      }
-    );
-
-    if (response.ok) {
-      console.log(`✅ [SHEETS] User erfolgreich synchronisiert`);
-    } else {
-      console.error(
-        `⚠️  [SHEETS] Sync API Error: ${response.status}`
-      );
-    }
-  } catch (error) {
-    console.error("❌ [SHEETS] Sync Error:", error);
-    // Fehler nicht kritisch - App funktioniert auch ohne Sheets Sync
-  }
-}
 
 // ============= NEXTAUTH KONFIGURATION =============
 
