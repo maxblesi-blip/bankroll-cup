@@ -30,7 +30,7 @@ const fetchUserRole = async (userId: string): Promise<string> => {
     return "player";
   }
 
-  const discordToken = process.env.DISCORD_TOKEN;
+ const discordToken = process.env.DISCORD_TOKEN;
   const serverId = process.env.DISCORD_SERVER_ID;
 
   // DEBUG: Token überprüfen
@@ -39,7 +39,8 @@ const fetchUserRole = async (userId: string): Promise<string> => {
   console.log(`🔑 [DEBUG] DISCORD_TOKEN erste 10 Zeichen: ${discordToken?.substring(0, 10) || "N/A"}`);
 
   if (!discordToken) {
-    console.error("❌ [ERROR] DISCORD_TOKEN nicht in .env.local gesetzt!");
+    console.error("❌ [ERROR] DISCORD_TOKEN NICHT in Vercel .env gesetzt!");
+    console.error(`Available env vars: ${Object.keys(process.env).filter(k => k.includes('DISCORD')).join(', ')}`);
     return "player";
   }
 
