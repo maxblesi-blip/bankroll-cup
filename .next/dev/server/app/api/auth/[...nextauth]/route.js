@@ -1,0 +1,10 @@
+var R=require("../../../../chunks/[turbopack]_runtime.js")("server/app/api/auth/[...nextauth]/route.js")
+R.c("server/chunks/8e6a4_next_2735f080._.js")
+R.c("server/chunks/8e6a4_next-auth_f37e8f50._.js")
+R.c("server/chunks/8e6a4_openid-client_628f4188._.js")
+R.c("server/chunks/8e6a4_jose_dist_node_cjs_3b2027a5._.js")
+R.c("server/chunks/8e6a4_3076e4b0._.js")
+R.c("server/chunks/[root-of-the-server]__f8c0b65c._.js")
+R.c("server/chunks/a43db__next-internal_server_app_api_auth_[___nextauth]_route_actions_67af321d.js")
+R.m("[project]/bankroll-cup/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/bankroll-cup/app/api/auth/[...nextauth]/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)")
+module.exports=R.m("[project]/bankroll-cup/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/bankroll-cup/app/api/auth/[...nextauth]/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)").exports

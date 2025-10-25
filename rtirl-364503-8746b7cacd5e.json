@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "rtirl-364503",
+  "private_key_id": "8746b7cacd5e63a535798cd08457c71b61194cbf",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCynYsTRG0Hrr/s\nG/kRns7VzGZ5Cxk6xZ9lBYkgW537TH8YNxs8qizNMke8khFlTsss/BvusoF2hhso\nmbWn6BAI/+fzRTlDofyk7haEVkiX5Vv1XI04DucZAAexDdh/xVPWkeyE1bnBeN8T\nlMQfi7oyaHwmArKVIC8jwx98bEuOezGfX8BdtvAQS2xJfBpm5MdkeL3pjiguMO70\nTfHhy/yWSHswL/DkY+P6cHhjycGEVawfF6cSx9FBjzxGpTlSD0pYW/eoOShTKB6C\nDOdHaWhlcpuUZfb+tV7j3gvh+5YCmJckAdTbMlMFn0o2s9H/pWQhmSOY5/glX3al\nXI3GVONbAgMBAAECggEACBHoI7G2v18c2r0Uzr//FlfK1XMz65zcK8NJQ8X/6Ee3\ngk+TEnWZ2peH+DQdRxd9RIYLeQhlowZCGd5//5sThmSRhUM+aBjcglMjf00qsHoz\nYm2RD9RUiqOetVgrzPIMbKhhKEtDvkMIySiyh75XZkmkOk9q5CP1HUeGl6eI7mH9\nKmq0Eo5H4L8F1lPSVKghOQ7RF7vyv8LrEQXyyoLGHxgmHAMhmCKMknZz7HFLveBw\n6tmYKM3dYrf0lMZtjOtjH9FUYoVoI71+HdiVxyEc/It93MAiwMTOFGmcFb2Q4EHl\nNWP2tRu1yhW8bw+yRd2xiltq1WI8EuaopYJt57U1yQKBgQDj000SAY92YXr2N8Iv\nwC6TPISNoEtWkjzxcMkanX7rShuqp3s13sJv822wn858C3OQp3lkQbTZTfU0LGR+\nUglOSNG5MSzX0tmaJotcJ+LjGvyUr37Xbb8TL9rW2cQTioh7YH/kPujSBV/qxr6j\nnO8v3T0bV9pDO51Nt2+X4dT9hwKBgQDItE78aJLRWSTLBsaRpTPABxi/PSdImXl+\nxb5v/0Jg76R0Lwdq8IXP7jIKADkoqsDWy4YjfBWh4ErPlTG+xjBYSvu+sa8kkXUA\nvXzoQyfA47Vdar0l4sn0y3gkDmKvWwh1vbM2SfGV8PxS1QPZm9zm4iXOmrQvEMYW\n7oY2oyDAjQKBgQCx9wtLN4DTno4o66F7H4rCZRG+eCqhs5Z7m/jcG49bSQaXpkCu\n8hW80dErmYn4iBF8O/athE47OZSDbvIJYxf12RhKq8k1xnVI3zcZg+bONPR9SSGy\nMv6BhG5USsPJ5/t5NQZyS1ofRSeKBDpDIIIPR6lGRLgwsM7OOK6pXDW+3QKBgFv6\nVeBSxEXwhm4Mst94SBkOp4asrd4Vh5pTYQzOfEsUR9d+3fViONCrpn7yzz8V0b4e\nE2EbsoY21dH/24ZEKU+tPWWM5GjryCUIsb93VzaMpEclbX15S3hF7s8HUK5wF5Zt\n0z1j8bT3dYs4V8VYKoocxZrDRyPymfVUZmmPpKjZAoGAK7AbWW7FgGGYJNFq72LC\nLxcnOnW/5B8x1fjVweWskKU5jvgJHug0vEo7L8eZ5Yuz0Gdgo6yzmcK8ICIJLMGY\nSgB5uId10hcM05n4/1YiNGPLtCF7tR9tNXVXIWWvbGMLLgTBNbier/vwM1sJV7Sg\nA3SQGJerq0xt28RvmKK1De4=\n-----END PRIVATE KEY-----\n",
+  "client_email": "bankroll-bot@rtirl-364503.iam.gserviceaccount.com",
+  "client_id": "110152441420113304560",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/bankroll-bot%40rtirl-364503.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

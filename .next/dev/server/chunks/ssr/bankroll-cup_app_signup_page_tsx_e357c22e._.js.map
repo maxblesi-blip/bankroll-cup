@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/M%C3%A4%C3%A4%C3%A4x/bankroll-cup/app/signup/page.tsx"],"sourcesContent":["\"use client\";\r\n\r\nimport { useEffect } from \"react\";\r\nimport { signIn } from \"next-auth/react\";\r\n\r\nexport default function SignupPage() {\r\n  useEffect(() => {\r\n    signIn(\"discord\", { redirect: true, callbackUrl: \"/\" });\r\n  }, []);\r\n\r\n  return (\r\n    <div className=\"max-w-md mx-auto px-4 py-16 flex items-center justify-center min-h-screen\">\r\n      <div className=\"text-center\">\r\n        <p className=\"text-slate-400\">Wird weitergeleitet...</p>\r\n      </div>\r\n    </div>\r\n  );\r\n}"],"names":[],"mappings":";;;;;AAEA;AACA;AAHA;;;;AAKe,SAAS;IACtB,IAAA,qOAAS,EAAC;QACR,IAAA,2KAAM,EAAC,WAAW;YAAE,UAAU;YAAM,aAAa;QAAI;IACvD,GAAG,EAAE;IAEL,qBACE,iQAAC;QAAI,WAAU;kBACb,cAAA,iQAAC;YAAI,WAAU;sBACb,cAAA,iQAAC;gBAAE,WAAU;0BAAiB;;;;;;;;;;;;;;;;AAItC","debugId":null}}]
+}
