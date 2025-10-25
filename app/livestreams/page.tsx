@@ -193,7 +193,7 @@ export default function Livestreams() {
                     src={stream.thumbnail}
                     alt={stream.name}
                     className="w-full h-full object-cover group-hover:brightness-75 transition-all"
-                    onError={(e) => {
+                   onError={(_e) => {
                       console.error(`Thumbnail Error für ${stream.name}`);
                     }}
                   />
