@@ -138,7 +138,7 @@ async function copyToBankrollUpdates(
   registrationRow: string[]
 ): Promise<boolean> {
   try {
-    const playerId = registrationRow[0];
+    // const playerId = registrationRow[0];
     const playerName = registrationRow[1];
     const playerEmail = registrationRow[2]; // Email aus Registration
 
