@@ -149,7 +149,7 @@ export async function GET() {
     for (const row of leaderboardRows) {
       if (!row[0]) continue; // Skip wenn keine ID
 
-      const playerId = row[0];
+      // const playerId = row[0];
       const userEmail = row[1]; // UserID = Email (Spalte B, Index 1)
       console.log(`\n🔍 Lade Bankroll für "${row[2]}" (Email: ${userEmail})...`);
 
