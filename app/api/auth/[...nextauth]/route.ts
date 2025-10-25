@@ -177,26 +177,19 @@ const handler = NextAuth({
     maxAge: 30 * 24 * 60 * 60, // 30 Tage
   },
   callbacks: {
-async jwt({ token, account, profile }) {
-  if (account?.provider === "discord" && profile) {
-    const discordProfile = profile as any;
-    token.discordId = discordProfile.id;
-    token.discordUsername = discordProfile.username;
-    token.discordEmail = discordProfile.email;
-    token.discordImage = discordProfile.image;
-  }
-  
-  // Username aktualisieren - INSIDE der Funktion!
-  if (profile?.username || profile?.name) {
-    token.name = (profile as any).username || (profile as any).name;
-  }
-  
-  return token;
-},  // ← KOMMA!
+    async jwt({ token, account, profile }) {
+      if (account?.provider === "discord" && profile) {
+        const discordProfile = profile as any;
+        token.discordId = discordProfile.id;
+        token.discordUsername = discordProfile.username;
+        token.discordEmail = discordProfile.email;
+        token.discordImage = discordProfile.image;
+      }
 
       // Username aktualisieren
-      if (profile?.username || profile?.name) {
-        token.name = profile.username || profile.name;
+      if (profile) {
+        const prof = profile as any;
+        token.name = prof.username || prof.name;
       }
 
       // Role beim Login oder nach Cache-Ablauf laden
