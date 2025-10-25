@@ -191,7 +191,7 @@ const handler = NextAuth({
     console.log(` Email: ${discordProfile.email}`);
   }
   return token;
-}
+},
 
       // Username aktualisieren
       if (profile?.username || profile?.name) {
