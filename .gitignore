@@ -1,1 +1,19 @@
 node_modules
+# Environment
+.env
+.env.local
+.env*.local
+
+# JSON Credentials
+*.json
+rtirl-364503-8746b7cacd5e.json
+
+# Next.js
+.next/
+out/
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
