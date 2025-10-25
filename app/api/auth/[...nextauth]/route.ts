@@ -177,21 +177,22 @@ const handler = NextAuth({
     maxAge: 30 * 24 * 60 * 60, // 30 Tage
   },
   callbacks: {
- async jwt({ token, account, profile }) {
+async jwt({ token, account, profile }) {
   if (account?.provider === "discord" && profile) {
     const discordProfile = profile as any;
     token.discordId = discordProfile.id;
     token.discordUsername = discordProfile.username;
     token.discordEmail = discordProfile.email;
     token.discordImage = discordProfile.image;
-
-    console.log(`📝 [JWT] Discord Profile gespeichert:`);
-    console.log(` ID: ${discordProfile.id}`);
-    console.log(` Username: ${discordProfile.username}`);
-    console.log(` Email: ${discordProfile.email}`);
   }
+  
+  // Username aktualisieren - INSIDE der Funktion!
+  if (profile?.username || profile?.name) {
+    token.name = (profile as any).username || (profile as any).name;
+  }
+  
   return token;
-},
+},  // ← KOMMA!
 
       // Username aktualisieren
       if (profile?.username || profile?.name) {
