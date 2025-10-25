@@ -33,6 +33,11 @@ const fetchUserRole = async (userId: string): Promise<string> => {
   const discordToken = process.env.DISCORD_TOKEN;
   const serverId = process.env.DISCORD_SERVER_ID;
 
+  // DEBUG: Token überprüfen
+  console.log(`🔑 [DEBUG] DISCORD_TOKEN vorhanden: ${discordToken ? "JA ✅" : "NEIN ❌"}`);
+  console.log(`🔑 [DEBUG] DISCORD_TOKEN Länge: ${discordToken?.length || 0}`);
+  console.log(`🔑 [DEBUG] DISCORD_TOKEN erste 10 Zeichen: ${discordToken?.substring(0, 10) || "N/A"}`);
+
   if (!discordToken) {
     console.error("❌ [ERROR] DISCORD_TOKEN nicht in .env.local gesetzt!");
     return "player";
