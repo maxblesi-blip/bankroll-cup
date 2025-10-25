@@ -114,48 +114,6 @@ const fetchUserRole = async (userId: string): Promise<string> => {
   }
 };
 
-// ============= GOOGLE SHEETS INTEGRATION =============
-
-async function syncUserToSheets(
-  discordId: string,
-  discordUsername: string,
-  discordEmail: string
-): Promise<void> {
-  try {
-    console.log(`\n📊 [SHEETS] Synce User zu Google Sheets...`);
-    console.log(`   Discord ID: ${discordId}`);
-    console.log(`   Username: ${discordUsername}`);
-    console.log(`   Email: ${discordEmail}`);
-
-    // Rufe Sync API auf (auf dem Server, nicht im Client)
-    const response = await fetch(
-      `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/sync-user`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          discordId,
-          discordUsername,
-          discordEmail,
-        }),
-      }
-    );
-
-    if (response.ok) {
-      console.log(`✅ [SHEETS] User erfolgreich synchronisiert`);
-    } else {
-      console.error(
-        `⚠️  [SHEETS] Sync API Error: ${response.status}`
-      );
-    }
-  } catch (error) {
-    console.error("❌ [SHEETS] Sync Error:", error);
-    // Fehler nicht kritisch - App funktioniert auch ohne Sheets Sync
-  }
-}
-
 // ============= NEXTAUTH KONFIGURATION =============
 
 const handler = NextAuth({
@@ -164,7 +122,6 @@ const handler = NextAuth({
       clientId: process.env.DISCORD_CLIENT_ID || "",
       clientSecret: process.env.DISCORD_CLIENT_SECRET || "",
       allowDangerousEmailAccountLinking: true,
-      // Wichtige Scopes für Email und Guilds
       authorization: {
         params: {
           scope: "identify email guilds",
@@ -174,7 +131,7 @@ const handler = NextAuth({
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 Tage
+    maxAge: 30 * 24 * 60 * 60,
   },
   callbacks: {
     async jwt({ token, account, profile }) {
@@ -186,13 +143,10 @@ const handler = NextAuth({
         token.discordImage = discordProfile.image;
       }
 
-      // Username aktualisieren
-      if (profile) {
-        const prof = profile as any;
-        token.name = prof.username || prof.name;
+      if (profile?.username || profile?.name) {
+        token.name = (profile as any).username || (profile as any).name;
       }
 
-      // Role beim Login oder nach Cache-Ablauf laden
       const discordId = token.discordId as string;
       if (discordId) {
         const lastRoleCheck = (token.lastRoleCheck as number) || 0;
@@ -219,17 +173,14 @@ const handler = NextAuth({
       if (session.user) {
         (session.user as any).id = token.discordId;
         (session.user as any).role = token.role || "player";
-        // ✅ Füge Discord Daten hinzu
         (session.user as any).discordId = token.discordId;
         (session.user as any).discordEmail = token.discordEmail;
         (session.user as any).discordUsername = token.discordUsername;
 
-        // Setze Email
         if (token.discordEmail) {
           session.user.email = token.discordEmail as string;
         }
 
-        // Setze Image
         if (token.discordImage) {
           session.user.image = token.discordImage as string;
         }
