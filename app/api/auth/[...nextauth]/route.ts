@@ -135,18 +135,25 @@ const handler = NextAuth({
   },
   callbacks: {
     async jwt({ token, account, profile }) {
+      // Discord Profile speichern
       if (account?.provider === "discord" && profile) {
-        const discordProfile = profile as any;
+        const discordProfile = profile as Record<string, any>;
         token.discordId = discordProfile.id;
         token.discordUsername = discordProfile.username;
         token.discordEmail = discordProfile.email;
         token.discordImage = discordProfile.image;
       }
 
-      if (profile?.username || profile?.name) {
-        token.name = (profile as any).username || (profile as any).name;
+      // Username aktualisieren
+      if (profile) {
+        const prof = profile as Record<string, any>;
+        const username = prof.username || prof.name;
+        if (username) {
+          token.name = username;
+        }
       }
 
+      // Role beim Login laden
       const discordId = token.discordId as string;
       if (discordId) {
         const lastRoleCheck = (token.lastRoleCheck as number) || 0;
@@ -171,11 +178,12 @@ const handler = NextAuth({
 
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.discordId;
-        (session.user as any).role = token.role || "player";
-        (session.user as any).discordId = token.discordId;
-        (session.user as any).discordEmail = token.discordEmail;
-        (session.user as any).discordUsername = token.discordUsername;
+        const user = session.user as Record<string, any>;
+        user.id = token.discordId;
+        user.role = token.role || "player";
+        user.discordId = token.discordId;
+        user.discordEmail = token.discordEmail;
+        user.discordUsername = token.discordUsername;
 
         if (token.discordEmail) {
           session.user.email = token.discordEmail as string;
