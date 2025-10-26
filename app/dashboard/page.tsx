@@ -191,7 +191,6 @@ export default function AdminPanel() {
         });
         alert('✅ Spieler hinzugefügt!');
       } else {
-        const error = await response.json();
         alert('❌ Fehler beim Speichern!');
       }
     } catch (error) {
