@@ -16,6 +16,45 @@ async function getAuthClient() {
   }
 }
 
+export async function GET() {
+  try {
+    console.log("📊 [BANKROLL-UPDATES] GET Request");
+
+    const auth = await getAuthClient();
+    const sheets = google.sheets("v4");
+
+    const response = await sheets.spreadsheets.values.get({
+      auth,
+      spreadsheetId: SHEET_ID,
+      range: "'Bankroll-Updates'!A:J",
+    });
+
+    const rows = response.data.values || [];
+    console.log(`✅ Retrieved ${rows.length} rows from Bankroll-Updates`);
+
+    const updates = rows.slice(1).map((row: any[]) => ({
+      id: row[0] || "",
+      userId: row[1] || "",
+      userName: row[2] || "",
+      bankroll: row[3] ? parseFloat(row[3]) : 0,
+      notes: row[4] || "",
+      proofImageUrl: row[5] || "",
+      status: row[6] || "pending",
+      createdAt: row[7] || "",
+      approvedBy: row[8] || "",
+      approvedAt: row[9] || "",
+    }));
+
+    return NextResponse.json(updates, { status: 200 });
+  } catch (error) {
+    console.error("❌ GET Error:", error);
+    return NextResponse.json(
+      { error: String(error) },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log("═══════════════════════════════════════════");
@@ -30,7 +69,6 @@ export async function POST(request: NextRequest) {
     console.log(`   • status: ${body.status}`);
     console.log(`   • proofImageUrl: ${body.proofImageUrl?.substring(0, 50)}...`);
 
-    // ✅ Validate
     if (!body.userId || !body.userName || body.bankroll === undefined) {
       console.error("❌ Missing required fields");
       return NextResponse.json(
@@ -39,36 +77,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ Get Auth
     console.log("🔐 [AUTH] Authenticating with Google Sheets...");
     const auth = await getAuthClient();
     const sheets = google.sheets("v4");
 
-    // ✅ Create entry
     const timestamp = new Date().toISOString();
-const entryId = `${body.userId}-${Date.now()}`;
-const values = [
-  [
-    entryId, // A: ID
-    body.userId, // B: userId
-    body.userName, // C: userName
-    body.bankroll, // D: bankroll
-    body.notes || "", // E: notes
-    body.proofImageUrl || "", // F: proofImageUrl
-    body.status || "pending", // G: status
-    timestamp, // H: createdAt
-    "", // I: approvedBy
-    "", // J: approvedAt
-  ],
-];
+    const entryId = `${body.userId}-${Date.now()}`;
+    const values = [
+      [
+        entryId,
+        body.userId,
+        body.userName,
+        body.bankroll,
+        body.notes || "",
+        body.proofImageUrl || "",
+        body.status || "pending",
+        timestamp,
+        "",
+        "",
+      ],
+    ];
 
     console.log("📝 [APPEND] Adding row to Bankroll-Updates sheet...");
 
-    // ✅ Append to Sheet
     const response = await sheets.spreadsheets.values.append({
       auth,
       spreadsheetId: SHEET_ID,
-      range: "'Bankroll-Updates'!A:I",
+      range: "'Bankroll-Updates'!A:J",
       valueInputOption: "RAW",
       requestBody: {
         values: values,
@@ -106,7 +141,8 @@ const values = [
       { status: 500 }
     );
   }
-} 
+}
+
 export async function PUT(request: NextRequest) {
   try {
     console.log("✏️ [BANKROLL-UPDATE] PUT Request");
@@ -183,10 +219,23 @@ export async function PUT(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    console.log("🗑️ [BANKROLL-UPDATE] DELETE Request");
+
+    const body = await request.json();
+    const { id } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "id required" },
+        { status: 400 }
+      );
+    }
+
     const auth = await getAuthClient();
     const sheets = google.sheets("v4");
 
-    // Finde Reihe nach ID
     const response = await sheets.spreadsheets.values.get({
       auth,
       spreadsheetId: SHEET_ID,
@@ -197,109 +246,16 @@ export async function PUT(request: NextRequest) {
     const rowIndex = rows.findIndex((row: any[]) => row[0] === id) + 1;
 
     if (rowIndex === 0) {
-      console.error("❌ Bankroll update not found:", id);
       return NextResponse.json(
         { error: "Bankroll update not found" },
         { status: 404 }
       );
     }
 
-    // Update Status
-    const currentRow = rows[rowIndex - 1];
-    const updatedRow = [
-      currentRow[0], // A: id
-      currentRow[1], // B: userId
-      currentRow[2], // C: userName
-      currentRow[3], // D: bankroll
-      currentRow[4], // E: notes
-      currentRow[5], // F: proofImageUrl
-      status,        // G: status (UPDATED!)
-      currentRow[7], // H: createdAt
-      currentRow[8], // I: approvedBy
-      currentRow[9], // J: approvedAt
-    ];
-
-    console.log(`✏️ [UPDATE] Row ${rowIndex}: Status → ${status}`);
-
-    await sheets.spreadsheets.values.update({
-      auth,
-      spreadsheetId: SHEET_ID,
-      range: "'Bankroll-Updates'!A:J",  // ✅ Bis J!
-      valueInputOption: "RAW",
-      requestBody: {
-        values: [updatedRow],
-      },
-    });
-
-    console.log(`✅ [UPDATE] Status aktualisiert zu: ${status}`);
-
-    return NextResponse.json(
-      { success: true, message: "Status updated" },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("❌ PUT Error:", error);
-    return NextResponse.json(
-      { error: String(error) },
-      { status: 500 }
-    );
-  }
-}
-
-    console.log("✅ Bankroll update updated");
-
-    return NextResponse.json(
-      { success: true, message: "Updated successfully" },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("❌ PUT Error:", error);
-    return NextResponse.json(
-      { error: String(error) },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    console.log("🗑️ [BANKROLL-UPDATE] DELETE Request");
-
-    const body = await request.json();
-    const { userId } = body;
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: "userId required" },
-        { status: 400 }
-      );
-    }
-
-    const auth = await getAuthClient();
-    const sheets = google.sheets("v4");
-
-    // ✅ Find and delete row
-    const response = await sheets.spreadsheets.values.get({
-      auth,
-      spreadsheetId: SHEET_ID,
-      range: "'Bankroll-Updates'!A:I",
-    });
-
-    const rows = response.data.values || [];
-    const rowIndex = rows.findIndex((row: any[]) => row[0] === userId) + 1;
-
-    if (rowIndex === 0) {
-      return NextResponse.json(
-        { error: "Bankroll update not found" },
-        { status: 404 }
-      );
-    }
-
-    // ✅ Clear row (Google Sheets doesn't have true delete, we clear)
     await sheets.spreadsheets.values.clear({
       auth,
       spreadsheetId: SHEET_ID,
-      range: `'Bankroll-Updates'!A${rowIndex}:I${rowIndex}`,
+      range: `'Bankroll-Updates'!A${rowIndex}:J${rowIndex}`,
     });
 
     console.log("✅ Bankroll update deleted");
