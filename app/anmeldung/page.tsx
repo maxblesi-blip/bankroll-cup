@@ -98,50 +98,36 @@ export default function AnmeldungPage() {
     }
   };
 
-  // ✅ Prüfe ob Registrierung im Sheet vorhanden ist
-  const checkRegistrationStatus = async (userEmail: string) => {
+  // ✅ Prüfe ob User bereits registriert ist
+  const checkIfAlreadyRegistered = async (userEmail: string) => {
     try {
-      console.log(`🔍 Prüfe Registrierung für: ${userEmail}`);
-
-      const response = await fetch("/api/leaderboard"); // Oder eine neue API Route
-      const data = await response.json();
-
-      if (!data.players || !Array.isArray(data.players)) {
-        console.warn("❌ Keine Spielerdaten gefunden");
+      console.log(`🔍 Prüfe ob ${userEmail} bereits registriert ist...`);
+      
+      const res = await fetch("/api/registrations");
+      const registrations = await res.json();
+      
+      if (!Array.isArray(registrations)) {
+        console.warn("❌ Keine Registrierungen gefunden");
         return;
       }
 
-      // Hier prüfen wir im Leaderboard - für besseres Ergebnis könntest du
-      // eine separate Route erstellen die auf "Registrierungen" prüft
-      const player = data.players.find(
-        (p: any) => p.email?.toLowerCase() === userEmail.toLowerCase()
+      const existing = registrations.find(
+        (r: any) => r.email?.toLowerCase() === userEmail?.toLowerCase()
       );
 
-      if (player) {
-        console.log(`✅ Spieler gefunden:`, player);
+      if (existing) {
+        console.log(`✅ User bereits registriert:`, existing);
         setSuccessData({
-          id: player.id,
-          name: player.name,
-          email: player.email,
-          status: "processing",
+          id: existing.id,
+          name: existing.name,
+          email: existing.email,
+          status: existing.status || "pending",
         });
       } else {
-        console.log(`ℹ️  Spieler noch nicht im System`);
-        setSuccessData({
-          id: Date.now().toString(),
-          name: formData.name,
-          email: userEmail,
-          status: "pending",
-        });
+        console.log(`ℹ️  User nicht registriert - Formular anzeigen`);
       }
     } catch (error) {
       console.error("❌ Error checking registration:", error);
-      setSuccessData({
-        id: Date.now().toString(),
-        name: formData.name,
-        email: userEmail,
-        status: "pending",
-      });
     }
   };
 
@@ -162,6 +148,9 @@ export default function AnmeldungPage() {
         email: emailFromDiscord, // ✅ Discord Email (nicht änderbar!)
         livestreamLink: prev.livestreamLink || user.livestreamLink || user.bio || "",
       }));
+      
+      // ✅ Prüfe ob User bereits im Registrierungen Sheet ist
+      checkIfAlreadyRegistered(emailFromDiscord);
       
       // Automatisch Membership prüfen
       checkDiscordMembership();
@@ -213,7 +202,7 @@ export default function AnmeldungPage() {
         console.log("✅ Registrierung erfolgreich eingereicht!");
         
         // ✅ Statt redirect, prüfe Registrierung und zeige Success Screen
-        await checkRegistrationStatus(formData.email);
+        await checkIfAlreadyRegistered(formData.email);
       } else {
         alert("❌ Fehler beim Speichern!");
       }
@@ -234,7 +223,7 @@ export default function AnmeldungPage() {
     );
   }
 
-  // ✅ SUCCESS SCREEN - nach erfolgreicher Anmeldung
+  // ✅ SUCCESS SCREEN - nach erfolgreicher Anmeldung oder wenn bereits registriert
   if (successData) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
