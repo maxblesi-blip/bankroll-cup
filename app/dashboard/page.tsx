@@ -11,6 +11,11 @@ import {
   Plus,
   Check,
   ChevronDown,
+  Mail,
+  User,
+  Twitch,
+  Link as LinkIcon,
+  AlertCircle,
 } from 'lucide-react';
 
 interface BankrollUpdate {
@@ -19,6 +24,7 @@ interface BankrollUpdate {
   userName: string;
   bankroll: number;
   notes: string;
+  proofImageUrl?: string;
   createdAt: string;
   status: 'pending' | 'approved' | 'rejected';
   approvedBy?: string;
@@ -33,6 +39,7 @@ interface Player {
   livestreamLink: string;
   verification: string;
   lastUpdated: string;
+  discordId?: string;
 }
 
 interface Registration {
@@ -41,6 +48,7 @@ interface Registration {
   email: string;
   ggpokerNickname: string;
   discord: string;
+  discordId?: string;
   livestreamLink: string;
   bankroll: number;
   experience: string;
@@ -69,6 +77,8 @@ export default function AdminPanel() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Player | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedReg, setSelectedReg] = useState<Registration | null>(null);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
   const [newPlayer, setNewPlayer] = useState({
     name: '',
     email: '',
@@ -120,6 +130,7 @@ export default function AdminPanel() {
           livestreamLink: p.livestreamLink || '',
           verification: p.verification || '',
           lastUpdated: p.lastUpdated || '',
+          discordId: p.discordId || '',
         }));
         console.log('✅ Konvertierte Spieler:', convertedPlayers);
         setPlayers(convertedPlayers);
@@ -149,7 +160,7 @@ export default function AdminPanel() {
     return today.toISOString().split('T')[0];
   };
 
- const handleAddPlayer = async () => {
+  const handleAddPlayer = async () => {
     if (
       !newPlayer.name ||
       !newPlayer.email ||
@@ -161,7 +172,7 @@ export default function AdminPanel() {
     }
 
     const player: Player = {
-      id: newPlayer.email, // ✅ Nutze Email als ID!
+      id: newPlayer.email,
       name: newPlayer.name,
       email: newPlayer.email,
       ggpokerNickname: newPlayer.ggpokerNickname,
@@ -173,7 +184,7 @@ export default function AdminPanel() {
 
     try {
       console.log(`➕ [ADD] Füge neuen Spieler hinzu:`, player);
-      
+
       const response = await fetch('/api/leaderboard', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -235,58 +246,73 @@ export default function AdminPanel() {
   };
 
   const handleDeletePlayer = async (player: Player) => {
-  if (confirm('Spieler wirklich löschen?')) {
+    if (confirm('Spieler wirklich löschen?')) {
+      try {
+        console.log(`🗑️ [DELETE] Lösche Spieler:`, player);
+
+        const response = await fetch('/api/leaderboard', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: player.id,
+            email: player.email,
+          }),
+        });
+
+        if (response.ok) {
+          console.log(`✅ Spieler gelöscht`);
+          setPlayers(players.filter((p) => p.email !== player.email));
+          alert('✅ Spieler gelöscht!');
+        } else {
+          const error = await response.json();
+          console.error(`❌ Fehler:`, error);
+          alert('❌ Fehler beim Löschen!');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Fehler beim Löschen!');
+      }
+    }
+  };
+
+  // ✅ NEU: Approve mit neuer Route
+  const handleApproveReg = async (reg: Registration) => {
     try {
-      console.log(`🗑️ [DELETE] Lösche Spieler:`, player);
-      
-      const response = await fetch('/api/leaderboard', {
-        method: 'DELETE',
+      setApprovingId(reg.id);
+      const user = session?.user as any;
+
+      console.log(`✅ Genehmige: ${reg.name}`);
+
+      const response = await fetch('/api/registrations/approve', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: player.id,
-          email: player.email, // ✅ EMAIL MITSENDET!
+          registrationId: reg.id,
+          approvedBy: user?.name || user?.email,
         }),
       });
 
       if (response.ok) {
-        console.log(`✅ Spieler gelöscht`);
-        setPlayers(players.filter((p) => p.email !== player.email));
-        alert('✅ Spieler gelöscht!');
+        const data = await response.json();
+        console.log(`✅ ${data.message}`);
+
+        setRegistrations(
+          registrations.map((r) =>
+            r.id === reg.id ? { ...r, status: 'approved' } : r
+          )
+        );
+        setSelectedReg(null);
+        alert('✅ Registrierung genehmigt!');
       } else {
         const error = await response.json();
         console.error(`❌ Fehler:`, error);
-        alert('❌ Fehler beim Löschen!');
+        alert('❌ Fehler beim Genehmigen!');
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('❌ Fehler beim Löschen!');
-    }
-  }
-};
-
-  const handleApproveReg = async (regId: string) => {
-    try {
-      const response = await fetch(`/api/registrations/${regId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'approved',
-          approvedBy: session?.user?.name || 'Admin',
-          approvedAt: new Date().toISOString(),
-        }),
-      });
-
-      if (response.ok) {
-        setRegistrations(
-          registrations.map((r) =>
-            r.id === regId ? { ...r, status: 'approved' } : r
-          )
-        );
-        alert('✅ Registrierung genehmigt!');
-        loadData();
-      }
-    } catch (error) {
       alert('❌ Fehler beim Genehmigen!');
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -308,6 +334,7 @@ export default function AdminPanel() {
             r.id === regId ? { ...r, status: 'rejected' } : r
           )
         );
+        setSelectedReg(null);
         alert('✅ Registrierung abgelehnt!');
       }
     } catch (error) {
@@ -395,7 +422,7 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 p-8">
-      <h1 className="text-4xl font-bold mb-8">Admin Panel</h1>
+      <h1 className="text-4xl font-bold mb-8">👥 Dashboard</h1>
 
       {/* TAB NAVIGATION */}
       <div className="flex gap-4 mb-8 border-b border-slate-700">
@@ -428,8 +455,7 @@ export default function AdminPanel() {
               : 'border-transparent text-slate-400 hover:text-slate-200'
           }`}
         >
-          💰 Bankroll Updates (
-          {bankrollUpdates.filter((u) => u.status === 'pending').length})
+          💰 Bankroll ({bankrollUpdates.filter((u) => u.status === 'pending').length})
         </button>
       </div>
 
@@ -437,132 +463,85 @@ export default function AdminPanel() {
       {tab === 'members' && (
         <>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Spieler verwalten (Leaderboard)</h2>
+            <h2 className="text-2xl font-bold">Spieler verwalten</h2>
             <button
               onClick={() => setShowAddModal(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition"
+              className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition flex items-center gap-2"
             >
-              <Plus size={20} /> Neuer Spieler
+              <Plus size={20} /> Spieler hinzufügen
             </button>
           </div>
 
-          {/* ADD MODAL */}
+          {/* Add Modal */}
           {showAddModal && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <h3 className="text-2xl font-bold mb-6">Neuer Spieler</h3>
-
+              <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 max-w-md w-full">
+                <h3 className="text-2xl font-bold mb-6">Neuen Spieler hinzufügen</h3>
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-300 mb-2">
-                      Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={newPlayer.name}
-                      onChange={(e) =>
-                        setNewPlayer({ ...newPlayer, name: e.target.value })
-                      }
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500"
-                      placeholder="z.B. Max Mustermann"
-                    />
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={newPlayer.name}
+                    onChange={(e) =>
+                      setNewPlayer({ ...newPlayer, name: e.target.value })
+                    }
+                    className="w-full bg-slate-700 border border-slate-600 rounded px-4 py-2 text-white"
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={newPlayer.email}
+                    onChange={(e) =>
+                      setNewPlayer({ ...newPlayer, email: e.target.value })
+                    }
+                    className="w-full bg-slate-700 border border-slate-600 rounded px-4 py-2 text-white"
+                  />
+                  <input
+                    type="text"
+                    placeholder="GGPoker Nickname"
+                    value={newPlayer.ggpokerNickname}
+                    onChange={(e) =>
+                      setNewPlayer({ ...newPlayer, ggpokerNickname: e.target.value })
+                    }
+                    className="w-full bg-slate-700 border border-slate-600 rounded px-4 py-2 text-white"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Bankroll (EUR)"
+                    value={newPlayer.bankroll}
+                    onChange={(e) =>
+                      setNewPlayer({ ...newPlayer, bankroll: e.target.value })
+                    }
+                    className="w-full bg-slate-700 border border-slate-600 rounded px-4 py-2 text-white"
+                  />
+                  <input
+                    type="url"
+                    placeholder="Livestream Link (optional)"
+                    value={newPlayer.livestreamLink}
+                    onChange={(e) =>
+                      setNewPlayer({ ...newPlayer, livestreamLink: e.target.value })
+                    }
+                    className="w-full bg-slate-700 border border-slate-600 rounded px-4 py-2 text-white"
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleAddPlayer}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded transition"
+                    >
+                      ✅ Hinzufügen
+                    </button>
+                    <button
+                      onClick={() => setShowAddModal(false)}
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded transition"
+                    >
+                      ❌ Abbrechen
+                    </button>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-slate-300 mb-2">
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      value={newPlayer.email}
-                      onChange={(e) =>
-                        setNewPlayer({ ...newPlayer, email: e.target.value })
-                      }
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500"
-                      placeholder="z.B. max@example.com"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-slate-300 mb-2">
-                      GGPoker Nickname *
-                    </label>
-                    <input
-                      type="text"
-                      value={newPlayer.ggpokerNickname}
-                      onChange={(e) =>
-                        setNewPlayer({
-                          ...newPlayer,
-                          ggpokerNickname: e.target.value,
-                        })
-                      }
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500"
-                      placeholder="z.B. MaxPoker88"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-slate-300 mb-2">
-                      Bankroll * (EUR)
-                    </label>
-                    <input
-                      type="number"
-                      value={newPlayer.bankroll}
-                      onChange={(e) =>
-                        setNewPlayer({ ...newPlayer, bankroll: e.target.value })
-                      }
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500"
-                      placeholder="z.B. 500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-slate-300 mb-2">
-                      Livestream Link (optional)
-                    </label>
-                    <input
-                      type="url"
-                      value={newPlayer.livestreamLink}
-                      onChange={(e) =>
-                        setNewPlayer({
-                          ...newPlayer,
-                          livestreamLink: e.target.value,
-                        })
-                      }
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500"
-                      placeholder="z.B. https://twitch.tv/..."
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-4 mt-8">
-                  <button
-                    onClick={handleAddPlayer}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded font-bold transition"
-                  >
-                    ✅ Hinzufügen
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAddModal(false);
-                      setNewPlayer({
-                        name: '',
-                        email: '',
-                        ggpokerNickname: '',
-                        bankroll: '',
-                        livestreamLink: '',
-                      });
-                    }}
-                    className="flex-1 bg-slate-600 hover:bg-slate-700 text-white py-2 rounded font-bold transition"
-                  >
-                    ❌ Abbrechen
-                  </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* PLAYERS TABLE */}
           <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -571,6 +550,7 @@ export default function AdminPanel() {
                     <th className="px-6 py-4 text-left font-bold">Name</th>
                     <th className="px-6 py-4 text-left font-bold">Email</th>
                     <th className="px-6 py-4 text-left font-bold">GGPoker</th>
+                    <th className="px-6 py-4 text-left font-bold">Discord ID</th>
                     <th className="px-6 py-4 text-right font-bold">Bankroll</th>
                     <th className="px-6 py-4 text-left font-bold">Livestream</th>
                     <th className="px-6 py-4 text-center font-bold">Aktionen</th>
@@ -579,10 +559,7 @@ export default function AdminPanel() {
                 <tbody>
                   {players.map((player) =>
                     editingId === player.id && editData ? (
-                      <tr
-                        key={player.id}
-                        className="bg-blue-900/30 border-b border-slate-700"
-                      >
+                      <tr key={player.id} className="bg-slate-700 border-b border-slate-700">
                         <td className="px-6 py-4">
                           <input
                             type="text"
@@ -590,17 +567,15 @@ export default function AdminPanel() {
                             onChange={(e) =>
                               setEditData({ ...editData, name: e.target.value })
                             }
-                            className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1"
+                            className="w-full bg-slate-600 border border-slate-500 rounded px-2 py-1"
                           />
                         </td>
                         <td className="px-6 py-4">
                           <input
                             type="email"
                             value={editData.email}
-                            onChange={(e) =>
-                              setEditData({ ...editData, email: e.target.value })
-                            }
-                            className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1"
+                            disabled
+                            className="w-full bg-slate-600 border border-slate-500 rounded px-2 py-1 opacity-50 cursor-not-allowed"
                           />
                         </td>
                         <td className="px-6 py-4">
@@ -613,7 +588,20 @@ export default function AdminPanel() {
                                 ggpokerNickname: e.target.value,
                               })
                             }
-                            className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1"
+                            className="w-full bg-slate-600 border border-slate-500 rounded px-2 py-1"
+                          />
+                        </td>
+                        <td className="px-6 py-4">
+                          <input
+                            type="text"
+                            value={editData.discordId || ''}
+                            onChange={(e) =>
+                              setEditData({
+                                ...editData,
+                                discordId: e.target.value,
+                              })
+                            }
+                            className="w-full bg-slate-600 border border-slate-500 rounded px-2 py-1 font-mono text-sm"
                           />
                         </td>
                         <td className="px-6 py-4">
@@ -626,7 +614,7 @@ export default function AdminPanel() {
                                 bankroll: parseFloat(e.target.value),
                               })
                             }
-                            className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1"
+                            className="w-full bg-slate-600 border border-slate-500 rounded px-2 py-1 text-right"
                           />
                         </td>
                         <td className="px-6 py-4">
@@ -639,7 +627,7 @@ export default function AdminPanel() {
                                 livestreamLink: e.target.value,
                               })
                             }
-                            className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1"
+                            className="w-full bg-slate-600 border border-slate-500 rounded px-2 py-1"
                           />
                         </td>
                         <td className="px-6 py-4">
@@ -672,6 +660,9 @@ export default function AdminPanel() {
                         </td>
                         <td className="px-6 py-4 text-sm">
                           {player.ggpokerNickname}
+                        </td>
+                        <td className="px-6 py-4 text-sm font-mono text-purple-400 border-l border-purple-700">
+                          {player.discordId || '-'}
                         </td>
                         <td className="px-6 py-4 text-right font-bold text-green-400">
                           EUR {player.bankroll}
@@ -724,187 +715,251 @@ export default function AdminPanel() {
         </>
       )}
 
-      {/* REGISTRATIONS TAB */}
+      {/* REGISTRATIONS TAB - CRM VIEW */}
       {tab === 'registrations' && (
         <>
-          <h2 className="text-2xl font-bold mb-6">Anmeldungen verwalten</h2>
+          <h2 className="text-2xl font-bold mb-6">Anmeldungen verwalten (CRM)</h2>
 
-          <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 mb-8 flex flex-wrap gap-3">
-            <button
-              onClick={() => setRegFilter('pending')}
-              className={`px-4 py-2 rounded font-bold transition ${
-                regFilter === 'pending'
-                  ? 'bg-yellow-600 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              ⏳ Ausstehend (
-              {registrations.filter((r) => r.status === 'pending').length})
-            </button>
-            <button
-              onClick={() => setRegFilter('approved')}
-              className={`px-4 py-2 rounded font-bold transition ${
-                regFilter === 'approved'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              ✅ Genehmigt (
-              {registrations.filter((r) => r.status === 'approved').length})
-            </button>
-            <button
-              onClick={() => setRegFilter('rejected')}
-              className={`px-4 py-2 rounded font-bold transition ${
-                regFilter === 'rejected'
-                  ? 'bg-red-600 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              ❌ Abgelehnt (
-              {registrations.filter((r) => r.status === 'rejected').length})
-            </button>
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Filter Sidebar */}
+            <div className="lg:col-span-1">
+              <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 space-y-2 sticky top-20">
+                <h3 className="font-bold text-purple-400 mb-3">Filter</h3>
 
-          <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden mb-8">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-slate-900 border-b border-slate-700">
-                    <th className="px-6 py-4 text-left font-bold">Name</th>
-                    <th className="px-6 py-4 text-left font-bold">Status</th>
-                    <th className="px-6 py-4 text-left font-bold">Datum</th>
-                    <th className="px-6 py-4 text-center font-bold">Aktionen</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRegs.map((reg) => (
-                    <tr
-                      key={reg.id}
-                      className="border-b border-slate-700 hover:bg-slate-700/50 transition"
-                    >
-                      <td className="px-6 py-4 font-bold">{reg.name}</td>
-                      <td className="px-6 py-4">
-                        {reg.status === 'approved' && (
-                          <span className="bg-green-900 text-green-300 px-3 py-1 rounded-full text-sm font-bold">
-                            ✅ Genehmigt
-                          </span>
-                        )}
-                        {reg.status === 'rejected' && (
-                          <span className="bg-red-900 text-red-300 px-3 py-1 rounded-full text-sm font-bold">
-                            ❌ Abgelehnt
-                          </span>
-                        )}
-                        {reg.status === 'pending' && (
-                          <span className="bg-yellow-900 text-yellow-300 px-3 py-1 rounded-full text-sm font-bold">
-                            ⏳ Ausstehend
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-400">
-                        {new Date(reg.createdAt).toLocaleString('de-DE', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                        })}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2 justify-center">
-                          {reg.status === 'pending' && (
-                            <>
-                              <button
-                                onClick={() => handleApproveReg(reg.id)}
-                                className="bg-green-600 hover:bg-green-700 text-white p-2 rounded transition"
-                                title="Genehmigen"
-                              >
-                                <Check size={18} />
-                              </button>
-                              <button
-                                onClick={() => handleRejectReg(reg.id)}
-                                className="bg-red-600 hover:bg-red-700 text-white p-2 rounded transition"
-                                title="Ablehnen"
-                              >
-                                <X size={18} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                {[
+                  {
+                    value: 'pending',
+                    label: '⏳ Ausstehend',
+                    count: registrations.filter((r) => r.status === 'pending').length,
+                  },
+                  {
+                    value: 'approved',
+                    label: '✅ Genehmigt',
+                    count: registrations.filter((r) => r.status === 'approved').length,
+                  },
+                  {
+                    value: 'rejected',
+                    label: '❌ Abgelehnt',
+                    count: registrations.filter((r) => r.status === 'rejected').length,
+                  },
+                ].map((f) => (
+                  <button
+                    key={f.value}
+                    onClick={() => setRegFilter(f.value as any)}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition ${
+                      regFilter === f.value
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                    }`}
+                  >
+                    <span className="font-bold">{f.label}</span>
+                    <span className="float-right text-xs bg-slate-900 px-2 py-1 rounded">
+                      {f.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {filteredRegs.length === 0 && (
-              <div className="text-center py-12 text-slate-400">
-                Keine Anmeldungen in diesem Status
-              </div>
-            )}
-          </div>
-
-          {filteredRegs.length > 0 && (
-            <div className="mt-8 space-y-4">
-              <h3 className="text-lg font-bold text-slate-300">Details</h3>
-              {filteredRegs.map((reg) => (
-                <div
-                  key={reg.id}
-                  className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden"
-                >
+            {/* Main Content */}
+            <div className="lg:col-span-2">
+              {selectedReg ? (
+                // ✅ DETAIL VIEW
+                <div className="bg-slate-800 border border-slate-700 rounded-lg p-8">
                   <button
-                    onClick={() =>
-                      setExpandedRegId(expandedRegId === reg.id ? null : reg.id)
-                    }
-                    className="w-full px-6 py-4 flex justify-between items-center hover:bg-slate-700/50 transition"
+                    onClick={() => setSelectedReg(null)}
+                    className="text-slate-400 hover:text-slate-300 mb-6 font-bold"
                   >
-                    <span className="font-bold">{reg.name}</span>
-                    <ChevronDown
-                      size={20}
-                      className={`transition ${
-                        expandedRegId === reg.id ? 'rotate-180' : ''
-                      }`}
-                    />
+                    ← Zurück
                   </button>
-                  {expandedRegId === reg.id && (
-                    <div className="px-6 py-4 bg-slate-900/50 border-t border-slate-700 space-y-3">
-                      <div>
-                        <p className="text-sm text-slate-400">Email</p>
-                        <p className="font-mono text-blue-400">{reg.email}</p>
+
+                  <div className="space-y-6">
+                    {/* Header */}
+                    <div className="border-b border-slate-700 pb-6">
+                      <h2 className="text-3xl font-bold mb-2">{selectedReg.name}</h2>
+                      <div className="flex gap-2">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-bold ${
+                            selectedReg.status === 'pending'
+                              ? 'bg-yellow-900/30 border border-yellow-700 text-yellow-300'
+                              : selectedReg.status === 'approved'
+                              ? 'bg-green-900/30 border border-green-700 text-green-300'
+                              : 'bg-red-900/30 border border-red-700 text-red-300'
+                          }`}
+                        >
+                          {selectedReg.status === 'pending'
+                            ? '⏳ Ausstehend'
+                            : selectedReg.status === 'approved'
+                            ? '✅ Genehmigt'
+                            : '❌ Abgelehnt'}
+                        </span>
+                        {selectedReg.approvedBy && (
+                          <span className="text-xs text-slate-400">
+                            Genehmigt von: {selectedReg.approvedBy}
+                          </span>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-sm text-slate-400">Discord</p>
-                        <p className="font-mono text-purple-400">{reg.discord}</p>
+                    </div>
+
+                    {/* Info Grid */}
+                    <div className="grid grid-cols-2 gap-6">
+                      {/* Email */}
+                      <div className="bg-slate-900 rounded-lg p-4">
+                        <p className="text-xs text-slate-400 mb-1 flex items-center gap-1">
+                          <Mail size={14} /> Email
+                        </p>
+                        <p className="font-mono text-sm break-all">{selectedReg.email}</p>
                       </div>
-                      <div>
-                        <p className="text-sm text-slate-400">GGPoker Nickname</p>
-                        <p className="font-mono">{reg.ggpokerNickname}</p>
+
+                      {/* Discord */}
+                      <div className="bg-slate-900 rounded-lg p-4">
+                        <p className="text-xs text-slate-400 mb-1 flex items-center gap-1">
+                          <User size={14} /> Discord
+                        </p>
+                        <p className="font-bold text-indigo-400">{selectedReg.discord}</p>
                       </div>
-                      {reg.livestreamLink && (
-                        <div>
-                          <p className="text-sm text-slate-400">Livestream Link</p>
+
+                      {/* Discord ID ✅ */}
+                      <div className="bg-slate-900 rounded-lg p-4 border border-purple-700">
+                        <p className="text-xs text-slate-400 mb-1 flex items-center gap-1">
+                          🔑 Discord ID
+                        </p>
+                        <p className="font-mono text-sm text-purple-400">
+                          {selectedReg.discordId || '—'}
+                        </p>
+                      </div>
+
+                      {/* GGPoker */}
+                      <div className="bg-slate-900 rounded-lg p-4">
+                        <p className="text-xs text-slate-400 mb-1">♠️ GGPoker Nickname</p>
+                        <p className="font-bold text-green-400">{selectedReg.ggpokerNickname}</p>
+                      </div>
+
+                      {/* Livestream */}
+                      {selectedReg.livestreamLink && (
+                        <div className="bg-slate-900 rounded-lg p-4 col-span-2">
+                          <p className="text-xs text-slate-400 mb-1 flex items-center gap-1">
+                            <Twitch size={14} /> Livestream
+                          </p>
                           <a
-                            href={reg.livestreamLink}
+                            href={selectedReg.livestreamLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-400 hover:underline break-all"
+                            className="text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1"
                           >
-                            {reg.livestreamLink}
+                            <LinkIcon size={14} /> Link öffnen
                           </a>
                         </div>
                       )}
-                      <div>
-                        <p className="text-sm text-slate-400">Erfahrung</p>
-                        <p>{reg.experience}</p>
+
+                      {/* Datum */}
+                      <div className="bg-slate-900 rounded-lg p-4 col-span-2">
+                        <p className="text-xs text-slate-400 mb-1">📅 Registrierungsdatum</p>
+                        <p className="text-sm">
+                          {new Date(selectedReg.createdAt).toLocaleDateString('de-DE')}
+                        </p>
                       </div>
-                      <div>
-                        <p className="text-sm text-slate-400">Angemeldet am</p>
-                        <p>{new Date(reg.createdAt).toLocaleString('de-DE')}</p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    {selectedReg.status === 'pending' && (
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => handleApproveReg(selectedReg)}
+                          disabled={approvingId === selectedReg.id}
+                          className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-bold py-3 rounded-lg transition flex items-center justify-center gap-2"
+                        >
+                          {approvingId === selectedReg.id ? (
+                            <>
+                              <AlertCircle size={20} className="animate-pulse" />
+                              Wird genehmigt...
+                            </>
+                          ) : (
+                            <>
+                              <Check size={20} />
+                              ✅ Genehmigen
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleRejectReg(selectedReg.id)}
+                          className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition flex items-center justify-center gap-2"
+                        >
+                          <X size={20} />
+                          ❌ Ablehnen
+                        </button>
                       </div>
+                    )}
+
+                    {selectedReg.status === 'approved' && (
+                      <div className="bg-green-900/30 border border-green-700 rounded-lg p-4 text-green-300">
+                        ✅ Diese Registrierung wurde bereits genehmigt
+                      </div>
+                    )}
+
+                    {selectedReg.status === 'rejected' && (
+                      <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 text-red-300">
+                        ❌ Diese Registrierung wurde abgelehnt
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                // ✅ LIST VIEW
+                <div className="space-y-3">
+                  {filteredRegs.length > 0 ? (
+                    filteredRegs.map((reg) => (
+                      <button
+                        key={reg.id}
+                        onClick={() => setSelectedReg(reg)}
+                        className="w-full text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-4 transition"
+                      >
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-lg mb-1">{reg.name}</h3>
+                            <p className="text-sm text-slate-400 truncate">{reg.email}</p>
+                            <div className="flex gap-2 mt-2 flex-wrap">
+                              <span className="text-xs bg-slate-900 px-2 py-1 rounded text-slate-300">
+                                {reg.discord}
+                              </span>
+                              {reg.discordId && (
+                                <span className="text-xs bg-purple-900/30 px-2 py-1 rounded text-purple-300 border border-purple-700 font-mono">
+                                  ID: {reg.discordId}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex-shrink-0 text-right">
+                            {reg.status === 'pending' && (
+                              <span className="inline-block bg-yellow-900/30 border border-yellow-700 text-yellow-300 px-3 py-1 rounded-full text-xs font-bold">
+                                ⏳ Ausstehend
+                              </span>
+                            )}
+                            {reg.status === 'approved' && (
+                              <span className="inline-block bg-green-900/30 border border-green-700 text-green-300 px-3 py-1 rounded-full text-xs font-bold">
+                                ✅ Genehmigt
+                              </span>
+                            )}
+                            {reg.status === 'rejected' && (
+                              <span className="inline-block bg-red-900/30 border border-red-700 text-red-300 px-3 py-1 rounded-full text-xs font-bold">
+                                ❌ Abgelehnt
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 text-center">
+                      <p className="text-slate-400">
+                        Keine Registrierungen in dieser Kategorie
+                      </p>
                     </div>
                   )}
                 </div>
-              ))}
+              )}
             </div>
-          )}
+          </div>
         </>
       )}
 
@@ -956,6 +1011,7 @@ export default function AdminPanel() {
                   <tr className="bg-slate-900 border-b border-slate-700">
                     <th className="px-6 py-4 text-left font-bold">Spieler</th>
                     <th className="px-6 py-4 text-right font-bold">Bankroll</th>
+                    <th className="px-6 py-4 text-left font-bold">Beweisfoto</th>
                     <th className="px-6 py-4 text-left font-bold">Notizen</th>
                     <th className="px-6 py-4 text-left font-bold">Status</th>
                     <th className="px-6 py-4 text-left font-bold">Datum</th>
@@ -971,6 +1027,20 @@ export default function AdminPanel() {
                       <td className="px-6 py-4 font-bold">{update.userName}</td>
                       <td className="px-6 py-4 text-right font-bold text-green-400">
                         EUR {update.bankroll}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        {update.proofImageUrl ? (
+                          <a
+                            href={update.proofImageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 font-bold underline"
+                          >
+                            🖼️ Link
+                          </a>
+                        ) : (
+                          <span className="text-slate-600">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-300">
                         {update.notes || '-'}
@@ -1006,18 +1076,14 @@ export default function AdminPanel() {
                           {update.status === 'pending' && (
                             <>
                               <button
-                                onClick={() =>
-                                  handleApproveBankroll(update.id)
-                                }
+                                onClick={() => handleApproveBankroll(update.id)}
                                 className="bg-green-600 hover:bg-green-700 text-white p-2 rounded transition"
                                 title="Genehmigen"
                               >
                                 <Check size={18} />
                               </button>
                               <button
-                                onClick={() =>
-                                  handleRejectBankroll(update.id)
-                                }
+                                onClick={() => handleRejectBankroll(update.id)}
                                 className="bg-red-600 hover:bg-red-700 text-white p-2 rounded transition"
                                 title="Ablehnen"
                               >
@@ -1026,9 +1092,7 @@ export default function AdminPanel() {
                             </>
                           )}
                           <button
-                            onClick={() =>
-                              handleDeleteBankroll(update.id)
-                            }
+                            onClick={() => handleDeleteBankroll(update.id)}
                             className="bg-slate-600 hover:bg-slate-700 text-white p-2 rounded transition"
                             title="Löschen"
                           >

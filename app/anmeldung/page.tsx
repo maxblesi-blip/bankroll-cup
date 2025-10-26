@@ -191,6 +191,7 @@ export default function AnmeldungPage() {
           ggpokerNickname: formData.ggpokerNickname,
           discord: formData.discord,
           livestreamLink: formData.livestreamLink,
+          discordId: getDiscordUserId(), // ✅ NEU: Discord ID
           bankroll: 0,
           experience: "beginner",
           createdAt: new Date().toISOString(),

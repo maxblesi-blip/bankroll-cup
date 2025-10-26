@@ -99,11 +99,12 @@ export async function POST(request: NextRequest) {
       registration.name, // B: Name
       registration.email, // C: Email
       registration.ggpokerNickname, // D: GGPoker Nickname
-      registration.discord || "", // E: Discord
+      registration.discord || "", // E: Discord Username
       registration.livestreamLink || "", // F: Livestream Link
-      new Date().toISOString().split("T")[0], // G: CreatedAt (Datum)
-      registration.status || "pending", // H: Status
-      "", // I: ApprovedBy
+      registration.discordId || "", // G: Discord ID ✅ NEU!
+      new Date().toISOString().split("T")[0], // H: CreatedAt (Datum)
+      registration.status || "pending", // I: Status
+      "", // J: ApprovedBy
     ];
 
     if (existingRowIndex !== -1) {
@@ -120,9 +121,10 @@ export async function POST(request: NextRequest) {
         updatedRow[3], // GGPoker aktualisieren
         updatedRow[4], // Discord aktualisieren
         updatedRow[5], // Livestream aktualisieren
-        currentRow[6] || updatedRow[6], // CreatedAt behalten (Original-Datum)
-        currentRow[7] || updatedRow[7], // Status behalten (falls schon genehmigt)
-        currentRow[8] || updatedRow[8], // ApprovedBy behalten
+        registration.discordId || currentRow[6] || "", // Discord ID aktualisieren oder behalten ✅
+        currentRow[7] || updatedRow[7], // CreatedAt behalten (Original-Datum)
+        currentRow[8] || updatedRow[8], // Status behalten (falls schon genehmigt)
+        currentRow[9] || updatedRow[9], // ApprovedBy behalten
       ];
 
       await sheets.spreadsheets.values.update({
