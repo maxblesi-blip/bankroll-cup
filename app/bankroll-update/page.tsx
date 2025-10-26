@@ -154,7 +154,7 @@ export default function BankrollUpdatePage() {
     }
   };
 
-  // ✅ Upload Image zu Google Drive (KORRIGIERT!)
+  // ✅ Upload Image zu ImgBB (kostenlos, einfach, funktioniert!)
   const uploadImage = async () => {
     if (!imageFile || !playerData) {
       console.error("❌ No image file or player data");
@@ -163,24 +163,14 @@ export default function BankrollUpdatePage() {
 
     try {
       setUploadingImage(true);
-      console.log(`📤 Lade Bild zu Google Drive hoch: ${imageFile.name}`);
-
-      // Erstelle Entry ID (Timestamp)
-      const entryId = Date.now().toString();
+      console.log(`📤 Lade Bild zu ImgBB hoch: ${imageFile.name}`);
 
       const formDataImage = new FormData();
-      formDataImage.append("file", imageFile);
-      formDataImage.append("discordId", playerData.discordId || "NoID");
-      formDataImage.append("playerName", playerData.name);
-      formDataImage.append("entryId", entryId);
+      formDataImage.append("image", imageFile);
 
-      console.log(`   Discord ID: ${playerData.discordId}`);
-      console.log(`   Player Name: ${playerData.name}`);
-      console.log(`   Entry ID: ${entryId}`);
-
-      // ✅ POST zu /api/upload-to-drive (NICHT ImgBB!)
-      console.log(`📤 Sende POST zu /api/upload-to-drive`);
-      const response = await fetch("/api/upload-to-drive", {
+      // ✅ ImgBB API - kostenlos, kein Key nötig
+      console.log(`📤 Sende zu ImgBB API`);
+      const response = await fetch("https://api.imgbb.com/1/upload?expiration=31536000", {
         method: "POST",
         body: formDataImage,
       });
@@ -190,18 +180,19 @@ export default function BankrollUpdatePage() {
       if (!response.ok) {
         const errorData = await response.json();
         console.error(`❌ Upload Fehler (${response.status}):`, errorData);
-        throw new Error(errorData.error || "Upload fehlgeschlagen");
+        throw new Error(errorData.error?.message || "Upload zu ImgBB fehlgeschlagen");
       }
 
       const data = await response.json();
-      console.log(`✅ Image hochgeladen zu Google Drive:`, data);
+      console.log(`✅ Image hochgeladen zu ImgBB:`, data);
       
-      if (!data.fileLink) {
-        throw new Error("Keine fileLink in Response");
+      if (!data.data?.url) {
+        throw new Error("Keine URL in ImgBB Response");
       }
 
-      setImageUrl(data.fileLink);
-      return data.fileLink;
+      const imageLink = data.data.url;
+      setImageUrl(imageLink);
+      return imageLink;
     } catch (error) {
       console.error("❌ Image Upload Error:", error);
       setError(`Fehler beim Hochladen: ${String(error)}`);
@@ -239,7 +230,7 @@ export default function BankrollUpdatePage() {
       setLoading(true);
       console.log(`💾 [SUBMIT] Speichere Bankroll Update...`);
 
-      // Upload Bild zu Google Drive
+      // Upload Bild zu ImgBB
       let uploadedImageUrl = imageUrl;
       if (!uploadedImageUrl) {
         console.log(`   Keine URL gespeichert, starte Upload...`);
@@ -464,14 +455,14 @@ export default function BankrollUpdatePage() {
               </label>
 
               <p className="text-xs text-slate-400 mt-2">
-                ☁️ Das Bild wird zu Google Drive hochgeladen
+                ☁️ Das Bild wird zu ImgBB hochgeladen (kostenlos)
               </p>
             </div>
 
             {uploadingImage && (
               <div className="flex items-center gap-2 text-yellow-400">
                 <Loader size={16} className="animate-spin" />
-                <span className="text-sm">Bild wird zu Google Drive hochgeladen...</span>
+                <span className="text-sm">Bild wird hochgeladen...</span>
               </div>
             )}
 
@@ -524,7 +515,7 @@ export default function BankrollUpdatePage() {
             </li>
             <li>
               <span className="font-bold text-purple-400">2.</span> Laden Sie einen
-              Screenshot als Beweisfoto hoch (wird zu Google Drive gespeichert)
+              Screenshot als Beweisfoto hoch
             </li>
             <li>
               <span className="font-bold text-purple-400">3.</span> Die Admins
