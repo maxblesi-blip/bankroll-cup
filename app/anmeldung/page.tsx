@@ -4,6 +4,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
+import { AlertCircle, CheckCircle, Loader } from "lucide-react";
+
+interface RegistrationData {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+}
 
 export default function AnmeldungPage() {
   const router = useRouter();
@@ -12,6 +20,11 @@ export default function AnmeldungPage() {
   const [checkingMembership, setCheckingMembership] = useState(false);
   const [isDiscordMember, setIsDiscordMember] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>("");
+  
+  // ✅ SUCCESS State
+  const [successData, setSuccessData] = useState<RegistrationData | null>(null);
+  const [checkingRegistration, setCheckingRegistration] = useState(false);
+  
   const [formData, setFormData] = useState({
     name: "",
     email: "", // ✅ Wird mit Discord Email vorgefüllt (nicht änderbar)
@@ -86,6 +99,56 @@ export default function AnmeldungPage() {
     }
   };
 
+  // ✅ Prüfe ob Registrierung im Sheet vorhanden ist
+  const checkRegistrationStatus = async (userEmail: string) => {
+    try {
+      setCheckingRegistration(true);
+      console.log(`🔍 Prüfe Registrierung für: ${userEmail}`);
+
+      const response = await fetch("/api/leaderboard"); // Oder eine neue API Route
+      const data = await response.json();
+
+      if (!data.players || !Array.isArray(data.players)) {
+        console.warn("❌ Keine Spielerdaten gefunden");
+        return;
+      }
+
+      // Hier prüfen wir im Leaderboard - für besseres Ergebnis könntest du
+      // eine separate Route erstellen die auf "Registrierungen" prüft
+      const player = data.players.find(
+        (p: any) => p.email?.toLowerCase() === userEmail.toLowerCase()
+      );
+
+      if (player) {
+        console.log(`✅ Spieler gefunden:`, player);
+        setSuccessData({
+          id: player.id,
+          name: player.name,
+          email: player.email,
+          status: "processing",
+        });
+      } else {
+        console.log(`ℹ️  Spieler noch nicht im System`);
+        setSuccessData({
+          id: Date.now().toString(),
+          name: formData.name,
+          email: userEmail,
+          status: "pending",
+        });
+      }
+    } catch (error) {
+      console.error("❌ Error checking registration:", error);
+      setSuccessData({
+        id: Date.now().toString(),
+        name: formData.name,
+        email: userEmail,
+        status: "pending",
+      });
+    } finally {
+      setCheckingRegistration(false);
+    }
+  };
+
   // Initialer Check wenn Session vorhanden
   useEffect(() => {
     if (session?.user && status === "authenticated") {
@@ -151,15 +214,10 @@ export default function AnmeldungPage() {
       });
 
       if (response.ok) {
-        alert("✅ Anmeldung erfolgreich! Wir werden dich bald kontaktieren.");
-        setFormData({
-          name: "",
-          email: "",
-          ggpokerNickname: "",
-          discord: "",
-          livestreamLink: "",
-        });
-        router.push("/");
+        console.log("✅ Registrierung erfolgreich eingereicht!");
+        
+        // ✅ Statt redirect, prüfe Registrierung und zeige Success Screen
+        await checkRegistrationStatus(formData.email);
       } else {
         alert("❌ Fehler beim Speichern!");
       }
@@ -176,6 +234,146 @@ export default function AnmeldungPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
         <p className="text-slate-400">Wird geladen...</p>
+      </div>
+    );
+  }
+
+  // ✅ SUCCESS SCREEN - nach erfolgreicher Anmeldung
+  if (successData) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <h1 className="text-4xl font-bold mb-2">🎉 Bewerbung eingereicht!</h1>
+        <p className="text-slate-400 mb-8">Danke für dein Interesse!</p>
+
+        {/* Success Message */}
+        <div className="bg-green-900/30 border border-green-700 rounded-lg p-8 mb-8">
+          <div className="flex items-start gap-4">
+            <CheckCircle className="text-green-400 flex-shrink-0 mt-1" size={32} />
+            <div>
+              <h2 className="text-2xl font-bold text-green-400 mb-3">
+                ✅ Bewerbung erfolgreich eingereicht
+              </h2>
+              <p className="text-slate-200">
+                Hallo <span className="font-bold">{successData.name}</span>,
+              </p>
+              <p className="text-slate-300 mt-2">
+                deine Bewerbung wird jetzt von unserem Admin-Team bearbeitet. Bitte habe etwas Geduld - wir überprüfen alle Daten sorgfältig!
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bewerbungs-Status */}
+        <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 mb-8 space-y-6">
+          <div>
+            <h3 className="font-bold text-purple-400 mb-4 flex items-center gap-2">
+              📋 Deine Bewerbungsdaten
+            </h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Name:</span>
+                <span className="text-white font-bold">{successData.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Email:</span>
+                <span className="text-white font-bold">{successData.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Status:</span>
+                <span className="text-yellow-400 font-bold">⏳ In Bearbeitung...</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-700 pt-6">
+            <h3 className="font-bold text-blue-400 mb-3 flex items-center gap-2">
+              💬 Bei Fragen?
+            </h3>
+            <div className="bg-slate-900 border border-slate-700 rounded p-4">
+              <p className="text-slate-300 text-sm mb-2">
+                Kontaktiere uns auf Discord:
+              </p>
+              <p className="text-lg font-bold text-purple-400">
+                👤 Max Powker
+              </p>
+              <p className="text-xs text-slate-400 mt-2">
+                Wir helfen dir gerne weiter bei Fragen oder Problemen!
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Timeline */}
+        <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 mb-8">
+          <h3 className="font-bold text-purple-400 mb-4 flex items-center gap-2">
+            ⏱️ Was kommt danach?
+          </h3>
+          <div className="space-y-4">
+            <div className="flex gap-4">
+              <div className="flex flex-col items-center">
+                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  ✓
+                </div>
+                <div className="w-0.5 h-8 bg-slate-700 my-2"></div>
+              </div>
+              <div>
+                <p className="font-bold text-green-400">Bewerbung eingereicht</p>
+                <p className="text-sm text-slate-400">Deine Daten wurden gespeichert</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="flex flex-col items-center">
+                <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  ⏳
+                </div>
+                <div className="w-0.5 h-8 bg-slate-700 my-2"></div>
+              </div>
+              <div>
+                <p className="font-bold text-yellow-400">Admin-Review (24-48h)</p>
+                <p className="text-sm text-slate-400">Deine Bewerbung wird überprüft</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="flex flex-col items-center">
+                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  →
+                </div>
+              </div>
+              <div>
+                <p className="font-bold text-purple-400">Genehmigung & Einladung</p>
+                <p className="text-sm text-slate-400">Du erhältst eine Email oder Discord Nachricht</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Hinweise */}
+        <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4 mb-8 flex gap-3">
+          <AlertCircle className="text-blue-400 flex-shrink-0 mt-0.5" size={20} />
+          <div>
+            <p className="text-sm text-blue-300">
+              <span className="font-bold">Hinweis:</span> Überprüfe regelmäßig deine Emails (auch Spam-Ordner). Bei Fragen kannst du uns auf Discord kontaktieren!
+            </p>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-4">
+          <button
+            onClick={() => router.push("/")}
+            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition"
+          >
+            ← Zur Startseite
+          </button>
+          <button
+            onClick={() => router.push("/ranking")}
+            className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg transition"
+          >
+            📊 Zur Rangliste →
+          </button>
+        </div>
       </div>
     );
   }

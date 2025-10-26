@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
   try {
     const registration = await request.json();
 
-    console.log(`📝 POST: Neue Registration von ${registration.name}`);
+    console.log(`📝 POST: Registration von ${registration.name} (Email: ${registration.email})`);
 
     // Validierung
     if (!registration.name || !registration.email || !registration.ggpokerNickname) {
@@ -76,39 +76,98 @@ export async function POST(request: NextRequest) {
 
     const sheets = google.sheets("v4");
 
-    // Generiere eindeutige ID
-    const newId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-
-    const newRow = [
-      newId, // ID
-      registration.name, // Name
-      registration.email, // Email
-      registration.ggpokerNickname, // GGPoker Nickname
-      registration.discord || "", // Discord
-      registration.livestreamLink || "", // Livestream Link
-      new Date().toISOString().split("T")[0], // CreatedAt (Datum)
-      "pending", // Status (initial)
-      "", // ApprovedBy (leer bis genehmigt)
-    ];
-
-    await sheets.spreadsheets.values.append({
+    // ✅ Hole alle bestehenden Registrierungen
+    const response = await sheets.spreadsheets.values.get({
       auth,
       spreadsheetId: SHEET_ID,
-      range: "Registrierungen!A2:I",
-      valueInputOption: "USER_ENTERED",
-      requestBody: { values: [newRow] },
+      range: "Registrierungen!A2:I1000",
     });
 
-    console.log(`✅ Registration gespeichert mit ID: ${newId}`);
+    const rows = response.data.values || [];
+    console.log(`📋 Gefunden ${rows.length} bestehende Registrierungen`);
 
-    return NextResponse.json(
-      {
-        success: true,
-        id: newId,
-        message: `Registrierung für ${registration.name} gespeichert!`,
-      },
-      { status: 201 }
-    );
+    // ✅ Prüfe ob Email bereits existiert (Spalte C, Index 2)
+    const existingRowIndex = rows.findIndex((row: string[]) => {
+      const rowEmail = row[2]?.toString().toLowerCase().trim() || "";
+      const checkEmail = registration.email.toLowerCase().trim();
+      return rowEmail === checkEmail;
+    });
+
+    // ✅ Datensatz vorbereiten
+    const updatedRow = [
+      registration.id || Date.now().toString() + Math.random().toString(36).substr(2, 9), // A: ID
+      registration.name, // B: Name
+      registration.email, // C: Email
+      registration.ggpokerNickname, // D: GGPoker Nickname
+      registration.discord || "", // E: Discord
+      registration.livestreamLink || "", // F: Livestream Link
+      new Date().toISOString().split("T")[0], // G: CreatedAt (Datum)
+      registration.status || "pending", // H: Status
+      "", // I: ApprovedBy
+    ];
+
+    if (existingRowIndex !== -1) {
+      // ✅ UPDATE: Spieler existiert bereits
+      console.log(`♻️  UPDATE: Email ${registration.email} existiert bereits bei Index ${existingRowIndex}`);
+
+      const currentRow = rows[existingRowIndex];
+      
+      // Behalte bestimmte Felder wenn sie bereits vorhanden sind
+      const finalRow = [
+        currentRow[0] || updatedRow[0], // ID behalten
+        updatedRow[1], // Name aktualisieren
+        updatedRow[2], // Email
+        updatedRow[3], // GGPoker aktualisieren
+        updatedRow[4], // Discord aktualisieren
+        updatedRow[5], // Livestream aktualisieren
+        currentRow[6] || updatedRow[6], // CreatedAt behalten (Original-Datum)
+        currentRow[7] || updatedRow[7], // Status behalten (falls schon genehmigt)
+        currentRow[8] || updatedRow[8], // ApprovedBy behalten
+      ];
+
+      await sheets.spreadsheets.values.update({
+        auth,
+        spreadsheetId: SHEET_ID,
+        range: `Registrierungen!A${existingRowIndex + 2}:I${existingRowIndex + 2}`,
+        valueInputOption: "USER_ENTERED",
+        requestBody: { values: [finalRow] },
+      });
+
+      console.log(`✅ Registration aktualisiert für ${registration.name} (${registration.email})`);
+
+      return NextResponse.json(
+        {
+          success: true,
+          id: currentRow[0],
+          updated: true,
+          message: `Registrierung für ${registration.name} aktualisiert!`,
+        },
+        { status: 200 }
+      );
+    } else {
+      // ✅ INSERT: Neuer Spieler
+      console.log(`✨ INSERT: Neue Registration für ${registration.email}`);
+
+      await sheets.spreadsheets.values.append({
+        auth,
+        spreadsheetId: SHEET_ID,
+        range: "Registrierungen!A2:I",
+        valueInputOption: "USER_ENTERED",
+        requestBody: { values: [updatedRow] },
+      });
+
+      console.log(`✅ Neue Registration gespeichert mit ID: ${updatedRow[0]}`);
+
+      return NextResponse.json(
+        {
+          success: true,
+          id: updatedRow[0],
+          created: true,
+          message: `Registrierung für ${registration.name} erstellt!`,
+        },
+        { status: 201 }
+      );
+    }
   } catch (error) {
     console.error("❌ POST Error:", error);
     return NextResponse.json(
