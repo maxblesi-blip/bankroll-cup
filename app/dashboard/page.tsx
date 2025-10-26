@@ -10,7 +10,6 @@ import {
   Plus,
   Check,
   ChevronDown,
-  ChevronUp,
   AlertCircle,
   ZoomIn,
   ZoomOut,
