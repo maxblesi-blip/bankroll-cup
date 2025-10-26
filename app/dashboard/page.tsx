@@ -1232,4 +1232,4 @@ const [zoom, setZoom] = useState(1);
       )}
     </div>
   );
-}
+} 
