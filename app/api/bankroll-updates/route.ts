@@ -223,10 +223,11 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    console.log("🗑️ [BANKROLL-UPDATE] DELETE Request");
-
     const body = await request.json();
-    const { id } = body;
+    const { id, email, discordId } = body;  ← HIER ÄNDERN!
+
+    console.log(`\n🗑️ DELETE: Lösche Spieler`);
+    console.log(`   Email: ${email}`);
 
     if (!id) {
       return NextResponse.json(
