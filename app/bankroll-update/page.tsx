@@ -224,7 +224,7 @@ export default function BankrollUpdatePage() {
     }
 
     if (!imageFile) {
-      setError("Bitte laden Sie ein Beweisfoto hoch!");
+      setError("❌ Screenshot/Beweisfoto ist erforderlich! Bitte laden Sie einen Screenshot Ihrer Bankroll hoch.");
       return;
     }
 
