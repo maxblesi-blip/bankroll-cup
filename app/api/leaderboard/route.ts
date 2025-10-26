@@ -35,17 +35,20 @@ async function getSheetId(auth: any, sheetName: string): Promise<number | null> 
 
 const SHEET_NAME = "Leaderboard";
 const HISTORY_SHEET_NAME = "LeaderboardHistory";
-// const BANKROLL_SHEET_NAME = "Bankroll-Updates";
+const SHEET_ID = process.env.GOOGLE_SHEET_ID || "1i5nEi_FP0a6zv4jOD6oGIlSudc8doo4LqlxJAL7DV58";
 
 interface Player {
-  rank: number;
-  email: string; // ✅ HINZUGEFÜGT!
+  id: string;
   name: string;
+  email: string;
   ggpokerNickname: string;
   bankroll: number;
-  startBankroll: number;
-  percentToGoal: number;
-  lastVerification: string;
+  position: number;
+  rank?: number;
+  createdAt: string;
+  lastUpdate: string;
+  discordUsername?: string;
+  discordId?: string;
   livestreamLink?: string;
 }
 
@@ -60,7 +63,7 @@ async function sheetExists(auth: any, sheetName: string): Promise<boolean> {
     const sheets = google.sheets("v4");
     const response = await sheets.spreadsheets.get({
       auth,
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+      spreadsheetId: SHEET_ID,
     });
 
     const sheet = response.data.sheets?.find(
@@ -72,8 +75,6 @@ async function sheetExists(auth: any, sheetName: string): Promise<boolean> {
     return false;
   }
 }
-
-
 
 async function getHistoricalData(auth: any): Promise<ChartData[]> {
   try {
@@ -89,7 +90,7 @@ async function getHistoricalData(auth: any): Promise<ChartData[]> {
     const sheets = google.sheets("v4");
     const response = await sheets.spreadsheets.values.get({
       auth,
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+      spreadsheetId: SHEET_ID,
       range: `${HISTORY_SHEET_NAME}!A1:Z1000`,
     });
 
@@ -120,9 +121,52 @@ async function getHistoricalData(auth: any): Promise<ChartData[]> {
   }
 }
 
+async function updateHistoricalData(auth: any, sheets: any) {
+  try {
+    console.log(`📊 Versuche historische Daten zu speichern...`);
+
+    // Prüfe zuerst ob Sheet existiert
+    const exists = await sheetExists(auth, HISTORY_SHEET_NAME);
+    if (!exists) {
+      console.log(`ℹ️  Sheet "${HISTORY_SHEET_NAME}" existiert nicht - überspringe`);
+      return; // Nicht kritisch
+    }
+
+    // Hole aktuelle Rangliste
+    const response = await sheets.spreadsheets.values.get({
+      auth,
+      spreadsheetId: SHEET_ID,
+      range: `${SHEET_NAME}!A2:E1000`,
+    });
+
+    const rows = response.data.values || [];
+    const today = new Date().toISOString().split("T")[0];
+
+    // Erstelle Zeile für heute
+    const historyRow = [today];
+    rows.forEach((row: string[]) => {
+      historyRow.push(String(parseFloat(row[4]) || 0)); // E: Bankroll (Index 4)
+    });
+
+    // Füge zu History hinzu
+    await sheets.spreadsheets.values.append({
+      auth,
+      spreadsheetId: SHEET_ID,
+      range: `${HISTORY_SHEET_NAME}!A:Z`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values: [historyRow] },
+    });
+
+    console.log(`✅ Historische Daten gespeichert`);
+  } catch (error) {
+    console.error(`⚠️  Error updating historical data (nicht kritisch):`, error);
+    // Nicht kritisch - fahre trotzdem fort
+  }
+}
+
 export async function GET() {
   try {
-    console.log(`\n📖 GET Leaderboard mit aktuellen Bankroll-Updates (Email-Verknüpfung)...`);
+    console.log(`\n📖 GET Leaderboard mit korrekten Spalten...`);
 
     const auth = await getAuthClient();
     if (!auth) {
@@ -132,60 +176,48 @@ export async function GET() {
 
     const sheets = google.sheets("v4");
 
-    // Hole Leaderboard Daten
-    // Struktur: A=ID, B=Email(UserID), C=Name, D=GGPoker, E=Discord, F=Bankroll, G=Livestream, H=Verification, I=LastUpdated
+    // ✅ KORREKTE Spalten: A-L (A2:L1000)
+    // A=ID, B=Name, C=Email, D=GGPoker, E=Bankroll, F=Position, 
+    // G=CreatedAt, H=LastUpdate, I=Discord Username, J=Discord ID, K=Livestream, L=Notes
     const leaderboardResponse = await sheets.spreadsheets.values.get({
       auth,
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: `${SHEET_NAME}!A2:I1000`,
+      spreadsheetId: SHEET_ID,
+      range: `${SHEET_NAME}!A2:L1000`,
     });
 
     const leaderboardRows = leaderboardResponse.data.values || [];
     console.log(`📊 ${leaderboardRows.length} Spieler im Leaderboard`);
 
-    // Verarbeite Spielerdaten mit DYNAMISCHEN Bankroll-Updates (basierend auf Email)
-    let players: Player[] = [];
-    
-    for (const row of leaderboardRows) {
-      if (!row[0]) continue; // Skip wenn keine ID
+    // ✅ Verarbeite Spielerdaten mit korrektem Spalten-Mapping
+    let players: Player[] = leaderboardRows
+      .filter((row: string[]) => row[0]) // Skip wenn keine ID
+      .map((row: string[]) => ({
+        id: row[0] || "", // A: ID
+        name: row[1] || "", // B: Name
+        email: row[2] || "", // C: Email
+        ggpokerNickname: row[3] || "", // D: GGPoker
+        bankroll: parseFloat(row[4]) || 0, // E: Bankroll ✅ KORREKT!
+        position: parseInt(row[5]) || 0, // F: Position
+        createdAt: row[6] || new Date().toISOString().split("T")[0], // G: CreatedAt
+        lastUpdate: row[7] || new Date().toISOString().split("T")[0], // H: LastUpdate
+        discordUsername: row[8] || "", // I: Discord Username ✅ NEU!
+        discordId: row[9] || "", // J: Discord ID ✅ NEU!
+        livestreamLink: row[10] || "", // K: Livestream Link
+      }));
 
-      // const playerId = row[0];
-      const userEmail = row[1]; // UserID = Email (Spalte B, Index 1)
-      console.log(`\n🔍 Lade Bankroll für "${row[2]}" (Email: ${userEmail})...`);
-
-// ✅ NEU: Hole Bankroll direkt aus Leaderboard (Spalte F, Index 5)
-const bankroll = parseFloat(row[5]) || 0;
-
-      const player: Player = {
-        rank: 0, // Wird später neu berechnet
-        email: userEmail, // ✅ HINZUGEFÜGT!
-        name: row[2] || "", // Spalte C (Name)
-        ggpokerNickname: row[3] || "", // Spalte D (GGPoker)
-        bankroll: bankroll,
-        startBankroll: parseFloat(row[5]) || 500,
-        livestreamLink: row[6] || undefined, // Spalte G (Livestream)
-        lastVerification: row[7] || new Date().toISOString().split("T")[0], // Spalte H (Verification)
-        percentToGoal: 0, // Wird später berechnet
-      };
-
-      players.push(player);
-    }
-
-    // Sortiere nach Bankroll (absteigend)
+    // ✅ Sortiere nach Bankroll (absteigend) und setze Rank
     players = players
       .sort((a, b) => b.bankroll - a.bankroll)
       .map((player, index) => ({
         ...player,
         rank: index + 1,
-        percentToGoal: Math.round((player.bankroll / 5000) * 100),
       }));
 
     console.log(`✅ ${players.length} Spieler sortiert und verarbeitet`);
+    console.log(`📤 First Player:`, players[0]);
 
     // Hole historische Daten für Chart (optional)
     const chartData = await getHistoricalData(auth);
-
-    console.log(`✅ Leaderboard erfolgreich geladen\n`);
 
     return NextResponse.json({
       players,
@@ -203,12 +235,13 @@ const bankroll = parseFloat(row[5]) || 0;
 
 export async function PUT(request: NextRequest) {
   try {
-    const { id, email, name, ggpokerNickname, bankroll, livestreamLink } =
+    const { id, email, name, ggpokerNickname, bankroll, livestreamLink, discordId, discordUsername } =
       await request.json();
 
     console.log(`\n🔄 PUT Leaderboard: ${name}`);
-    console.log(`   ID: ${id}`);
     console.log(`   Email: ${email}`);
+    console.log(`   Bankroll: ${bankroll}`);
+    console.log(`   Discord ID: ${discordId}`);
 
     const auth = await getAuthClient();
     if (!auth) {
@@ -221,33 +254,32 @@ export async function PUT(request: NextRequest) {
     // Hole alle Reihen um die zu aktualisieren zu finden
     const response = await sheets.spreadsheets.values.get({
       auth,
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: `${SHEET_NAME}!A2:I1000`,
+      spreadsheetId: SHEET_ID,
+      range: `${SHEET_NAME}!A2:L1000`,
     });
 
     const rows = response.data.values || [];
     console.log(`📊 Gefunden ${rows.length} Reihen im Leaderboard`);
 
-    // ✅ Suche nach Email (Spalte B, Index 1)
+    // ✅ Suche nach Email (Spalte C, Index 2)
     let rowIndex = -1;
-    
+
     if (email) {
       rowIndex = rows.findIndex((row: string[]) => {
-        const rowEmail = row[1]?.toString().toLowerCase().trim();
+        const rowEmail = row[2]?.toString().toLowerCase().trim();
         const searchEmail = email.toLowerCase().trim();
-        console.log(`   Vergleiche: "${rowEmail}" === "${searchEmail}"`);
         return rowEmail === searchEmail;
       });
-      console.log(`   ✅ Gefunden nach Email bei Index: ${rowIndex}`);
+      console.log(`   Suche nach Email: ${rowIndex !== -1 ? `Gefunden (Reihe ${rowIndex})` : "Nicht gefunden"}`);
     }
 
     // Fallback: Suche nach ID
     if (rowIndex === -1 && id) {
       rowIndex = rows.findIndex((row: string[]) => row[0] === id);
-      console.log(`   Fallback: Gefunden nach ID bei Index: ${rowIndex}`);
+      console.log(`   Fallback ID: ${rowIndex !== -1 ? `Gefunden (Reihe ${rowIndex})` : "Nicht gefunden"}`);
     }
 
-    const lastVerification = new Date().toISOString().split("T")[0];
+    const lastUpdate = new Date().toISOString().split("T")[0];
 
     if (rowIndex === -1) {
       // ✅ Spieler existiert nicht - erstelle NEUEN Eintrag
@@ -257,23 +289,26 @@ export async function PUT(request: NextRequest) {
       const values = [
         [
           newId, // A: ID
-          email || "", // B: Email
-          name, // C: Name
-          ggpokerNickname, // D: GGPoker
-          "", // E: Discord
-          bankroll?.toString() || "0", // F: Bankroll
-          livestreamLink || "", // G: Livestream
-          lastVerification, // H: Verification
-          lastVerification, // I: Last Updated
+          name || "", // B: Name
+          email || "", // C: Email
+          ggpokerNickname || "", // D: GGPoker
+          bankroll?.toString() || "0", // E: Bankroll
+          "0", // F: Position
+          lastUpdate, // G: CreatedAt
+          lastUpdate, // H: LastUpdate
+          discordUsername || "", // I: Discord Username ✅
+          discordId || "", // J: Discord ID ✅
+          livestreamLink || "", // K: Livestream Link
+          "", // L: Notes
         ],
       ];
 
-      console.log(`   📝 Neue Reihe: [${values[0].join(" | ")}]`);
+      console.log(`   📝 Neue Reihe: ${JSON.stringify(values[0])}`);
 
       await sheets.spreadsheets.values.append({
         auth,
-        spreadsheetId: process.env.GOOGLE_SHEET_ID,
-        range: `${SHEET_NAME}!A2:I`,
+        spreadsheetId: SHEET_ID,
+        range: `${SHEET_NAME}!A2:L`,
         valueInputOption: "USER_ENTERED",
         requestBody: { values },
       });
@@ -284,31 +319,34 @@ export async function PUT(request: NextRequest) {
       console.log(`\n♻️  UPDATE bestehende Reihe ${rowIndex + 2}`);
 
       const currentRow = rows[rowIndex];
-      console.log(`   Alte Daten: [${currentRow.join(" | ")}]`);
 
       const updatedRow = [
-        currentRow[0] || id || Date.now().toString(), // A: ID (behalten oder setzen)
-        email || currentRow[1] || "", // B: Email
-        name || currentRow[2], // C: Name
+        currentRow[0] || id || Date.now().toString(), // A: ID (behalten)
+        name || currentRow[1] || "", // B: Name
+        email || currentRow[2] || "", // C: Email (behalten meist)
         ggpokerNickname || currentRow[3] || "", // D: GGPoker
-        currentRow[4] || "", // E: Discord (behalten)
-        bankroll?.toString() || currentRow[5] || "0", // F: Bankroll
-        livestreamLink || currentRow[6] || "", // G: Livestream
-        currentRow[7] || lastVerification, // H: Verification (behalten)
-        lastVerification, // I: Last Updated
+        bankroll !== undefined ? bankroll.toString() : (currentRow[4] || "0"), // E: Bankroll ✅
+        currentRow[5] || "0", // F: Position (behalten)
+        currentRow[6] || lastUpdate, // G: CreatedAt (behalten)
+        lastUpdate, // H: LastUpdate (neu setzen)
+        discordUsername || currentRow[8] || "", // I: Discord Username ✅
+        discordId || currentRow[9] || "", // J: Discord ID ✅
+        livestreamLink || currentRow[10] || "", // K: Livestream Link
+        currentRow[11] || "", // L: Notes (behalten)
       ];
 
-      console.log(`   Neue Daten: [${updatedRow.join(" | ")}]`);
+      console.log(`   ✅ Update: Bankroll ${currentRow[4] || "0"} → ${updatedRow[4]}`);
+      console.log(`   ✅ Update: Discord ID ${currentRow[9] || "-"} → ${updatedRow[9]}`);
 
       await sheets.spreadsheets.values.update({
         auth,
-        spreadsheetId: process.env.GOOGLE_SHEET_ID,
-        range: `${SHEET_NAME}!A${rowIndex + 2}:I${rowIndex + 2}`,
+        spreadsheetId: SHEET_ID,
+        range: `${SHEET_NAME}!A${rowIndex + 2}:L${rowIndex + 2}`,
         valueInputOption: "USER_ENTERED",
         requestBody: { values: [updatedRow] },
       });
 
-      console.log(`✅ Spieler aktualisiert: ${name} → €${bankroll}\n`);
+      console.log(`✅ Spieler aktualisiert: ${name} → €${updatedRow[4]}\n`);
     }
 
     // Versuche historische Daten zu speichern
@@ -330,7 +368,6 @@ export async function DELETE(request: NextRequest) {
     const { id, email } = body;
 
     console.log(`\n🗑️ DELETE: Lösche Spieler`);
-    console.log(`   ID: ${id}`);
     console.log(`   Email: ${email}`);
 
     if (!id && !email) {
@@ -347,19 +384,19 @@ export async function DELETE(request: NextRequest) {
     const sheets = google.sheets("v4");
     const response = await sheets.spreadsheets.values.get({
       auth,
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: `${SHEET_NAME}!A2:I1000`,
+      spreadsheetId: SHEET_ID,
+      range: `${SHEET_NAME}!A2:L1000`,
     });
 
     const rows = response.data.values || [];
     console.log(`📊 Gefunden ${rows.length} Reihen im Leaderboard`);
 
-    // ✅ Suche nach Email (Spalte B, Index 1)
+    // ✅ Suche nach Email (Spalte C, Index 2)
     let rowIndex = -1;
 
     if (email) {
       rowIndex = rows.findIndex((row: string[]) => {
-        const rowEmail = row[1]?.toString().toLowerCase().trim();
+        const rowEmail = row[2]?.toString().toLowerCase().trim();
         const searchEmail = email.toLowerCase().trim();
         return rowEmail === searchEmail;
       });
@@ -395,7 +432,7 @@ export async function DELETE(request: NextRequest) {
     // Lösche Reihe
     await sheets.spreadsheets.batchUpdate({
       auth,
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+      spreadsheetId: SHEET_ID,
       requestBody: {
         requests: [
           {
@@ -417,48 +454,5 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error("❌ DELETE Error:", error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
-  }
-}
-
-async function updateHistoricalData(auth: any, sheets: any) {
-  try {
-    console.log(`📊 Versuche historische Daten zu speichern...`);
-
-    // Prüfe zuerst ob Sheet existiert
-    const exists = await sheetExists(auth, HISTORY_SHEET_NAME);
-    if (!exists) {
-      console.log(`ℹ️  Sheet "${HISTORY_SHEET_NAME}" existiert nicht - überspringe`);
-      return; // Nicht kritisch
-    }
-
-    // Hole aktuelle Rangliste
-    const response = await sheets.spreadsheets.values.get({
-      auth,
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: `${SHEET_NAME}!A2:F1000`,
-    });
-
-    const rows = response.data.values || [];
-    const today = new Date().toISOString().split("T")[0];
-
-    // Erstelle Zeile für heute
-    const historyRow = [today];
-    rows.forEach((row: string[]) => {
-      historyRow.push(String(parseFloat(row[5]) || 0));
-    });
-
-    // Füge zu History hinzu
-    await sheets.spreadsheets.values.append({
-      auth,
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: `${HISTORY_SHEET_NAME}!A:Z`,
-      valueInputOption: "USER_ENTERED",
-      requestBody: { values: [historyRow] },
-    });
-
-    console.log(`✅ Historische Daten gespeichert`);
-  } catch (error) {
-    console.error(`⚠️  Error updating historical data (nicht kritisch):`, error);
-    // Nicht kritisch - fahre trotzdem fort
   }
 }
