@@ -152,17 +152,20 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     console.log("✏️ [BANKROLL-UPDATE] PUT Request");
-
-    const body = await request.json();
-    const { id, status } = body;
-
-    if (!id || !status) {
-      console.error("❌ Missing id or status");
-      return NextResponse.json(
-        { error: "id and status required" },
-        { status: 400 }
-      );
-    }
+    ...
+    ...
+    return NextResponse.json(
+      { success: true, message: "Updated successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("❌ PUT Error:", error);
+    return NextResponse.json(
+      { error: String(error) },
+      { status: 500 }
+    );
+  }
+}
 
     const auth = await getAuthClient();
     const sheets = google.sheets("v4");
