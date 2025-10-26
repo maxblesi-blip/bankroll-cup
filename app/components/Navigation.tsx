@@ -1,18 +1,28 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { Menu, LogOut, X } from "lucide-react";
 import Link from "next/link";
 
 export default function Navigation() {
+  const pathname = usePathname();
+  const isUnauthorized = pathname === "/unauthorized";
   const { data: session } = useSession();
   const [showMenu, setShowMenu] = useState(false);
   const [isInLeaderboard, setIsInLeaderboard] = useState(false);
   const [loading, setLoading] = useState(true);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // ✅ NICHT rendern wenn /unauthorized
+  if (isUnauthorized) {
+    return null;
+  }
+
   const user = session?.user as any;
+  
+  // ... Rest des Codes bleibt gleich ...
 
   // ✅ Lade Leaderboard und prüfe ob User darin ist
   useEffect(() => {
