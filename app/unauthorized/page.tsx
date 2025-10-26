@@ -1,6 +1,6 @@
 "use client";
 
-import { Trophy, Users, TrendingUp, Zap } from "lucide-react";
+import { Trophy, TrendingUp, Zap } from "lucide-react";
 
 export default function UnauthorizedPage() {
   return (
