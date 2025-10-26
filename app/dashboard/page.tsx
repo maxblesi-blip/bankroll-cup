@@ -403,9 +403,8 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-3 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-2xl md:text-4xl font-bold mb-6">🎛️ Admin Panel</h1>
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <h1 className="text-2xl md:text-4xl font-bold mb-6">Dashboard</h1>
 
         {/* TABS - Responsive */}
         <div className="flex gap-1 md:gap-4 mb-6 border-b border-slate-700 pb-4 flex-wrap">
@@ -1155,7 +1154,6 @@ export default function AdminPanel() {
             </div>
           </div>
         )}
-      </div>
-    </div>
+     </div>
   );
 }
