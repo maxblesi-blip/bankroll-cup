@@ -1139,7 +1139,7 @@ const [zoom, setZoom] = useState(1);
                     </tr>
                   ))}
                </tbody>
-              </table>
+             </table>
             </div>  {/* <- Schließe overflow-x-auto div */}
 
             {/* 🖼️ IMAGE MODAL mit ZOOM */}
@@ -1211,17 +1211,11 @@ const [zoom, setZoom] = useState(1);
                     >
                       ✅ Schließen
                     </button>
-                 </div>
-            </div>
-          </div>
-        )}
-
-            {filteredBankrollUpdates.length === 0 && (
-              <div className="text-center py-12 text-slate-400">
-                Keine Bankroll Updates in diesem Status
+                  </div>
+                </div>
               </div>
             )}
-          </div>
+
             {filteredBankrollUpdates.length === 0 && (
               <div className="text-center py-12 text-slate-400">
                 Keine Bankroll Updates in diesem Status
@@ -1232,4 +1226,4 @@ const [zoom, setZoom] = useState(1);
       )}
     </div>
   );
-} 
+}
