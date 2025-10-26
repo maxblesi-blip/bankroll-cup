@@ -84,27 +84,28 @@ export async function POST(request: NextRequest) {
     const timestamp = new Date().toISOString();
     const entryId = `${body.userId}-${Date.now()}`;
     const values = [
-      [
-        entryId,
-        body.userId,
-        body.userName,
-        body.bankroll,
-        body.notes || "",
-        body.proofImageUrl || "",
-        body.status || "pending",
-        timestamp,
-        "",
-        "",
-      ],
-    ];
+  [
+    entryId, // A: ID
+    body.userId, // B: userId
+    body.userName, // C: userName
+    body.discordId || "", // D: discordId ← NEU!
+    body.bankroll, // E: bankroll
+    body.notes || "", // F: notes
+    body.proofImageUrl || "", // G: proofImageUrl
+    body.status || "pending", // H: status
+    timestamp, // I: createdAt
+    "", // J: approvedBy
+    "", // K: approvedAt
+  ],
+];
 
     console.log("📝 [APPEND] Adding row to Bankroll-Updates sheet...");
 
     const response = await sheets.spreadsheets.values.append({
-      auth,
-      spreadsheetId: SHEET_ID,
-      range: "'Bankroll-Updates'!A:J",
-      valueInputOption: "RAW",
+  auth,
+  spreadsheetId: SHEET_ID,
+  range: "'Bankroll-Updates'!A:K",   ← A:K!
+  valueInputOption: "RAW",
       requestBody: {
         values: values,
       },
@@ -162,10 +163,10 @@ export async function PUT(request: NextRequest) {
     const sheets = google.sheets("v4");
 
     const response = await sheets.spreadsheets.values.get({
-      auth,
-      spreadsheetId: SHEET_ID,
-      range: "'Bankroll-Updates'!A:J",
-    });
+  auth,
+  spreadsheetId: SHEET_ID,
+  range: "'Bankroll-Updates'!A:K",  // ← A:K
+});
 
     const rows = response.data.values || [];
     const rowIndex = rows.findIndex((row: any[]) => row[0] === id) + 1;
@@ -180,24 +181,25 @@ export async function PUT(request: NextRequest) {
 
     const currentRow = rows[rowIndex - 1];
     const updatedRow = [
-      currentRow[0],
-      currentRow[1],
-      currentRow[2],
-      currentRow[3],
-      currentRow[4],
-      currentRow[5],
-      status,
-      currentRow[7],
-      currentRow[8],
-      currentRow[9],
-    ];
+  currentRow[0],
+  currentRow[1],
+  currentRow[2],
+  currentRow[3],  // ← discordId (wird mitgenommen)
+  currentRow[4],
+  currentRow[5],
+  currentRow[6],
+  status,  // ← Hier wird status aktualisiert (war Index 6, jetzt Index 7)
+  currentRow[8],
+  currentRow[9],
+  currentRow[10],
+];
 
     console.log(`✏️ [UPDATE] Row ${rowIndex}: Status → ${status}`);
 
     await sheets.spreadsheets.values.update({
       auth,
       spreadsheetId: SHEET_ID,
-      range: `'Bankroll-Updates'!A${rowIndex}:J${rowIndex}`,
+      range: `'Bankroll-Updates'!A${rowIndex}:K${rowIndex}`,  // ← A:K
       valueInputOption: "RAW",
       requestBody: {
         values: [updatedRow],
@@ -237,10 +239,10 @@ export async function DELETE(request: NextRequest) {
     const sheets = google.sheets("v4");
 
     const response = await sheets.spreadsheets.values.get({
-      auth,
-      spreadsheetId: SHEET_ID,
-      range: "'Bankroll-Updates'!A:J",
-    });
+  auth,
+  spreadsheetId: SHEET_ID,
+  range: "'Bankroll-Updates'!A:K",  // ← A:K
+});
 
     const rows = response.data.values || [];
     const rowIndex = rows.findIndex((row: any[]) => row[0] === id) + 1;
@@ -255,7 +257,7 @@ export async function DELETE(request: NextRequest) {
     await sheets.spreadsheets.values.clear({
       auth,
       spreadsheetId: SHEET_ID,
-      range: `'Bankroll-Updates'!A${rowIndex}:J${rowIndex}`,
+      range: `'Bankroll-Updates'!A${rowIndex}:K${rowIndex}`,  // ← A:K
     });
 
     console.log("✅ Bankroll update deleted");
