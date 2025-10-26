@@ -457,7 +457,7 @@ export default function BankrollUpdatePage() {
               </label>
 
               <p className="text-xs text-slate-400 mt-2">
-                ☁️ Das Bild wird zu ImgBB hochgeladen (kostenlos)
+              
               </p>
             </div>
 
