@@ -1,7 +1,7 @@
 // app/regeln/page.tsx
 "use client";
 
-import { Clock, CheckCircle, Target, Video, } from "lucide-react";
+import { Clock, CheckCircle, Target, Video, AlertCircle } from "lucide-react";
 
 export default function RegelnPage() {
   return (
@@ -100,7 +100,15 @@ export default function RegelnPage() {
                   <div className="bg-slate-800/50 rounded p-4 border border-green-600/30">
                     <h3 className="font-bold text-green-400 mb-2">Regelmäßige Verifizierung</h3>
                     <p className="text-lg">
-                      <span className="font-bold text-green-300">1x monatlich</span> via Bildschirmübertragung auf Discord
+                      <span className="font-bold text-green-300">1x monatlich</span> via Bildschirmübertragung auf{' '}
+                      <a 
+                        href="https://discord.gg/YbeKE6YEa8" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-green-300 hover:text-green-200 hover:underline transition"
+                      >
+                        Discord
+                      </a>
                     </p>
                   </div>
 
@@ -251,3 +259,9 @@ export default function RegelnPage() {
               </a>
               {' '}💬
             </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
