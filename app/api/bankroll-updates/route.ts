@@ -46,19 +46,21 @@ export async function POST(request: NextRequest) {
 
     // ✅ Create entry
     const timestamp = new Date().toISOString();
-    const values = [
-      [
-        body.userId, // A: userId
-        body.userName, // B: userName
-        body.bankroll, // C: bankroll
-        body.notes || "", // D: notes
-        body.proofImageUrl || "", // E: proofImageUrl
-        body.status || "pending", // F: status
-        timestamp, // G: createdAt
-        "", // H: approvedBy
-        "", // I: approvedAt
-      ],
-    ];
+const entryId = `${body.userId}-${Date.now()}`;
+const values = [
+  [
+    entryId, // A: ID
+    body.userId, // B: userId
+    body.userName, // C: userName
+    body.bankroll, // D: bankroll
+    body.notes || "", // E: notes
+    body.proofImageUrl || "", // F: proofImageUrl
+    body.status || "pending", // G: status
+    timestamp, // H: createdAt
+    "", // I: approvedBy
+    "", // J: approvedAt
+  ],
+];
 
     console.log("📝 [APPEND] Adding row to Bankroll-Updates sheet...");
 
@@ -126,16 +128,17 @@ export async function GET() {
 
     // ✅ Convert to objects (skip header row)
     const updates = rows.slice(1).map((row: any[]) => ({
-      userId: row[0] || "",
-      userName: row[1] || "",
-      bankroll: row[2] ? parseFloat(row[2]) : 0,
-      notes: row[3] || "",
-      proofImageUrl: row[4] || "",
-      status: row[5] || "pending",
-      createdAt: row[6] || "",
-      approvedBy: row[7] || "",
-      approvedAt: row[8] || "",
-    }));
+  id: row[0] || "",              // A: ID
+  userId: row[1] || "",          // B: userId
+  userName: row[2] || "",        // C: userName
+  bankroll: row[3] ? parseFloat(row[3]) : 0,  // D: bankroll
+  notes: row[4] || "",           // E: notes ✅ (war row[3]!)
+  proofImageUrl: row[5] || "",   // F: proofImageUrl ✅ (war row[4]!)
+  status: row[6] || "pending",   // G: status ✅ (war row[5]!)
+  createdAt: row[7] || "",       // H: createdAt ✅ (war row[6]!)
+  approvedBy: row[8] || "",      // I: approvedBy ✅ (war row[7]!)
+  approvedAt: row[9] || "",      // J: approvedAt ✅ (war row[8]!)
+}));
 
     return NextResponse.json(updates, { status: 200 });
   } catch (error) {
