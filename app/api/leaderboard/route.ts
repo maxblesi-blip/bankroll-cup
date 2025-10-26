@@ -374,8 +374,8 @@ if (rowIndex === -1 && id) {
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, email } = body;
-
+    const { id, email, discordId } = body; 
+ 
     console.log(`\n🗑️ DELETE: Lösche Spieler`);
     console.log(`   Email: ${email}`);
 
