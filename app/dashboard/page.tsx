@@ -10,7 +10,6 @@ import {
   Plus,
   Check,
   ChevronDown,
-  AlertCircle,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
