@@ -89,7 +89,6 @@ export default function AdminPanel() {
   const [bankrollFilter, setBankrollFilter] = useState<
     'pending' | 'approved' | 'rejected'
   >('pending');
-  const [expandedRegId, setExpandedRegId] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'loading') return;
