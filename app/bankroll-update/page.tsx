@@ -512,16 +512,14 @@ export default function BankrollUpdatePage() {
           <h3 className="font-bold mb-3 text-purple-400">📋 Ablauf</h3>
           <ol className="space-y-2 text-sm text-slate-300">
             <li>
-              <span className="font-bold text-purple-400">1.</span> Geben Sie Ihre
-              aktuelle Bankroll ein
+              <span className="font-bold text-purple-400">1.</span> Gib deine aktuelle Bankroll ein
             </li>
             <li>
-              <span className="font-bold text-purple-400">2.</span> Laden Sie einen
-              Screenshot als Beweisfoto hoch
+              <span className="font-bold text-purple-400">2.</span> Lade einen Screenshot deiner Bankroll hoch
             </li>
             <li>
               <span className="font-bold text-purple-400">3.</span> Die Admins
-              überprüfen Ihr Update
+              überprüfen das Update
             </li>
             <li>
               <span className="font-bold text-purple-400">4.</span> Einmal im Monat
