@@ -26,7 +26,7 @@ export async function GET() {
     const response = await sheets.spreadsheets.values.get({
       auth,
       spreadsheetId: SHEET_ID,
-      range: "'Bankroll-Updates'!A:J",
+      range: "'Bankroll-Updates'!A:K",
     });
 
     const rows = response.data.values || [];
@@ -36,13 +36,14 @@ export async function GET() {
       id: row[0] || "",
       userId: row[1] || "",
       userName: row[2] || "",
-      bankroll: row[3] ? parseFloat(row[3]) : 0,
-      notes: row[4] || "",
-      proofImageUrl: row[5] || "",
-      status: row[6] || "pending",
-      createdAt: row[7] || "",
-      approvedBy: row[8] || "",
-      approvedAt: row[9] || "",
+      discordId: row[3] || "",
+      bankroll: row[4] ? parseFloat(row[4]) : 0,
+      notes: row[5] || "",
+      proofImageUrl: row[6] || "",
+      status: row[7] || "pending",
+      createdAt: row[8] || "",
+      approvedBy: row[9] || "",
+      approvedAt: row[10] || "",
     }));
 
     return NextResponse.json(updates, { status: 200 });
@@ -66,6 +67,7 @@ export async function POST(request: NextRequest) {
     console.log(`   • userId: ${body.userId}`);
     console.log(`   • userName: ${body.userName}`);
     console.log(`   • bankroll: ${body.bankroll}`);
+    console.log(`   • discordId: ${body.discordId}`);
     console.log(`   • status: ${body.status}`);
     console.log(`   • proofImageUrl: ${body.proofImageUrl?.substring(0, 50)}...`);
 
@@ -84,32 +86,32 @@ export async function POST(request: NextRequest) {
     const timestamp = new Date().toISOString();
     const entryId = `${body.userId}-${Date.now()}`;
     const values = [
-  [
-    entryId, // A: ID
-    body.userId, // B: userId
-    body.userName, // C: userName
-    body.discordId || "", // D: discordId  NEU!
-    body.bankroll, // E: bankroll
-    body.notes || "", // F: notes
-    body.proofImageUrl || "", // G: proofImageUrl
-    body.status || "pending", // H: status
-    timestamp, // I: createdAt
-    "", // J: approvedBy
-    "", // K: approvedAt
-  ],
-];
+      [
+        entryId, // A: ID
+        body.userId, // B: userId
+        body.userName, // C: userName
+        body.discordId || "", // D: discordId
+        body.bankroll, // E: bankroll
+        body.notes || "", // F: notes
+        body.proofImageUrl || "", // G: proofImageUrl
+        body.status || "pending", // H: status
+        timestamp, // I: createdAt
+        "", // J: approvedBy
+        "", // K: approvedAt
+      ],
+    ];
 
     console.log("📝 [APPEND] Adding row to Bankroll-Updates sheet...");
 
     const response = await sheets.spreadsheets.values.append({
-  auth,
-  spreadsheetId: SHEET_ID,
-  range: "'Bankroll-Updates'!A:K",
-  valueInputOption: "RAW",
-  requestBody: {
-    values: values,
-  },
-});
+      auth,
+      spreadsheetId: SHEET_ID,
+      range: "'Bankroll-Updates'!A:K",
+      valueInputOption: "RAW",
+      requestBody: {
+        values: values,
+      },
+    });
 
     console.log("✅ [APPEND] Row added successfully!");
     console.log(`   • Updates: ${response.data.updates?.updatedRows}`);
@@ -163,10 +165,10 @@ export async function PUT(request: NextRequest) {
     const sheets = google.sheets("v4");
 
     const response = await sheets.spreadsheets.values.get({
-  auth,
-  spreadsheetId: SHEET_ID,
-  range: "'Bankroll-Updates'!A:K",
-});
+      auth,
+      spreadsheetId: SHEET_ID,
+      range: "'Bankroll-Updates'!A:K",
+    });
 
     const rows = response.data.values || [];
     const rowIndex = rows.findIndex((row: any[]) => row[0] === id) + 1;
@@ -181,25 +183,25 @@ export async function PUT(request: NextRequest) {
 
     const currentRow = rows[rowIndex - 1];
     const updatedRow = [
-  currentRow[0],
-  currentRow[1],
-  currentRow[2],
-  currentRow[3],  //  discordId (wird mitgenommen)
-  currentRow[4],
-  currentRow[5],
-  currentRow[6],
-  status,  //  Hier wird status aktualisiert (war Index 6, jetzt Index 7)
-  currentRow[8],
-  currentRow[9],
-  currentRow[10],
-];
+      currentRow[0], // A: id
+      currentRow[1], // B: userId
+      currentRow[2], // C: userName
+      currentRow[3], // D: discordId
+      currentRow[4], // E: bankroll
+      currentRow[5], // F: notes
+      currentRow[6], // G: proofImageUrl
+      status, // H: status (UPDATED!)
+      currentRow[8], // I: createdAt
+      currentRow[9], // J: approvedBy
+      currentRow[10], // K: approvedAt
+    ];
 
     console.log(`✏️ [UPDATE] Row ${rowIndex}: Status → ${status}`);
 
     await sheets.spreadsheets.values.update({
       auth,
       spreadsheetId: SHEET_ID,
-      range: `'Bankroll-Updates'!A${rowIndex}:K${rowIndex}`,  //  A:K
+      range: `'Bankroll-Updates'!A${rowIndex}:K${rowIndex}`,
       valueInputOption: "RAW",
       requestBody: {
         values: [updatedRow],
@@ -226,12 +228,15 @@ export async function DELETE(request: NextRequest) {
     const body = await request.json();
     const { id, email, discordId } = body;
 
-    console.log(`\n🗑️ DELETE: Lösche Spieler`);
+    console.log(`\n🗑️ DELETE: Lösche Bankroll Update`);
+    console.log(`   ID: ${id}`);
     console.log(`   Email: ${email}`);
+    console.log(`   Discord ID: ${discordId}`);
 
-    if (!id) {
+    if (!id && !email && !discordId) {
+      console.error(`❌ Keine ID, Email oder Discord ID im Request Body`);
       return NextResponse.json(
-        { error: "id required" },
+        { error: "ID, Email or Discord ID required" },
         { status: 400 }
       );
     }
@@ -240,15 +245,40 @@ export async function DELETE(request: NextRequest) {
     const sheets = google.sheets("v4");
 
     const response = await sheets.spreadsheets.values.get({
-  auth,
-  spreadsheetId: SHEET_ID,
-  range: "'Bankroll-Updates'!A:K",  //  A:K
-});
+      auth,
+      spreadsheetId: SHEET_ID,
+      range: "'Bankroll-Updates'!A:K",
+    });
 
     const rows = response.data.values || [];
-    const rowIndex = rows.findIndex((row: any[]) => row[0] === id) + 1;
+    let rowIndex = -1;
 
-    if (rowIndex === 0) {
+    // PRIMÄR: Suche nach Discord ID (Spalte D, Index 3)
+    if (discordId) {
+      rowIndex = rows.findIndex((row: any[]) => {
+        const rowDiscordId = row[3]?.toString().trim();
+        return rowDiscordId === discordId;
+      });
+      console.log(`   Suche nach Discord ID: ${rowIndex !== -1 ? "Gefunden" : "Nicht gefunden"}`);
+    }
+
+    // Fallback: Suche nach ID (Spalte A, Index 0)
+    if (rowIndex === -1 && id) {
+      rowIndex = rows.findIndex((row: any[]) => row[0] === id);
+      console.log(`   Fallback nach ID: ${rowIndex !== -1 ? "Gefunden" : "Nicht gefunden"}`);
+    }
+
+    // Final Fallback: Suche nach Email (Spalte B, Index 1)
+    if (rowIndex === -1 && email) {
+      rowIndex = rows.findIndex((row: any[]) => {
+        const rowEmail = row[1]?.toString().toLowerCase().trim();
+        return rowEmail === email.toLowerCase().trim();
+      });
+      console.log(`   Fallback nach Email: ${rowIndex !== -1 ? "Gefunden" : "Nicht gefunden"}`);
+    }
+
+    if (rowIndex === -1) {
+      console.error(`❌ Bankroll update nicht gefunden`);
       return NextResponse.json(
         { error: "Bankroll update not found" },
         { status: 404 }
@@ -258,10 +288,10 @@ export async function DELETE(request: NextRequest) {
     await sheets.spreadsheets.values.clear({
       auth,
       spreadsheetId: SHEET_ID,
-      range: `'Bankroll-Updates'!A${rowIndex}:K${rowIndex}`,  //  A:K
+      range: `'Bankroll-Updates'!A${rowIndex + 1}:K${rowIndex + 1}`,
     });
 
-    console.log("✅ Bankroll update deleted");
+    console.log(`✅ Bankroll update gelöscht (Reihe ${rowIndex + 1})`);
 
     return NextResponse.json(
       { success: true, message: "Deleted successfully" },
