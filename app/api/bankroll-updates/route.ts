@@ -106,8 +106,7 @@ const values = [
       { status: 500 }
     );
   }
-}
-
+} 
 export async function GET() {
   try {
     console.log("📊 [BANKROLL-UPDATES] GET Request");
@@ -155,11 +154,12 @@ export async function PUT(request: NextRequest) {
     console.log("✏️ [BANKROLL-UPDATE] PUT Request");
 
     const body = await request.json();
-    const { userId, ...updateData } = body;
+    const { id, status } = body;
 
-    if (!userId) {
+    if (!id || !status) {
+      console.error("❌ Missing id or status");
       return NextResponse.json(
-        { error: "userId required" },
+        { error: "id and status required" },
         { status: 400 }
       );
     }
@@ -167,45 +167,65 @@ export async function PUT(request: NextRequest) {
     const auth = await getAuthClient();
     const sheets = google.sheets("v4");
 
-    // ✅ Find row by userId
+    // Finde Reihe nach ID
     const response = await sheets.spreadsheets.values.get({
       auth,
       spreadsheetId: SHEET_ID,
-      range: "'Bankroll-Updates'!A:I",
+      range: "'Bankroll-Updates'!A:J",
     });
 
     const rows = response.data.values || [];
-    const rowIndex = rows.findIndex((row: any[]) => row[0] === userId) + 1;
+    const rowIndex = rows.findIndex((row: any[]) => row[0] === id) + 1;
 
     if (rowIndex === 0) {
+      console.error("❌ Bankroll update not found:", id);
       return NextResponse.json(
         { error: "Bankroll update not found" },
         { status: 404 }
       );
     }
 
-    // ✅ Update row (✅ FIXED: removed unused variable)
+    // Update Status
+    const currentRow = rows[rowIndex - 1];
+    const updatedRow = [
+      currentRow[0], // A: id
+      currentRow[1], // B: userId
+      currentRow[2], // C: userName
+      currentRow[3], // D: bankroll
+      currentRow[4], // E: notes
+      currentRow[5], // F: proofImageUrl
+      status,        // G: status (UPDATED!)
+      currentRow[7], // H: createdAt
+      currentRow[8], // I: approvedBy
+      currentRow[9], // J: approvedAt
+    ];
+
+    console.log(`✏️ [UPDATE] Row ${rowIndex}: Status → ${status}`);
+
     await sheets.spreadsheets.values.update({
       auth,
       spreadsheetId: SHEET_ID,
-      range: `'Bankroll-Updates'!A${rowIndex}:I${rowIndex}`,
+      range: `'Bankroll-Updates'!A${rowIndex}:J${rowIndex}`,
       valueInputOption: "RAW",
       requestBody: {
-        values: [
-          [
-            userId,
-            updateData.userName || rows[rowIndex - 1][1],
-            updateData.bankroll ?? rows[rowIndex - 1][2],
-            updateData.notes || rows[rowIndex - 1][3],
-            updateData.proofImageUrl || rows[rowIndex - 1][4],
-            updateData.status || rows[rowIndex - 1][5],
-            rows[rowIndex - 1][6],
-            updateData.approvedBy || rows[rowIndex - 1][7],
-            updateData.approvedAt || rows[rowIndex - 1][8],
-          ],
-        ],
+        values: [updatedRow],
       },
     });
+
+    console.log(`✅ [UPDATE] Status aktualisiert zu: ${status}`);
+
+    return NextResponse.json(
+      { success: true, message: "Status updated" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("❌ PUT Error:", error);
+    return NextResponse.json(
+      { error: String(error) },
+      { status: 500 }
+    );
+  }
+}
 
     console.log("✅ Bankroll update updated");
 
