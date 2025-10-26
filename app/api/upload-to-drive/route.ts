@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { Readable } from "stream";
 
-const BANKROLL_FOLDER_ID = "17bRf-VSkHAOcy81Vp-ossv6MPwVeqBxI";
-
 async function getAuthClient() {
   try {
     const key = JSON.parse(process.env.GOOGLE_SHEETS_API_KEY || "{}");
@@ -71,7 +69,7 @@ export async function POST(request: NextRequest) {
     console.log("🔄 [STREAM] Creating readable stream...");
     const stream = Readable.from(buffer);
 
-    // ✅ Upload
+    // ✅ Upload to Drive (NO PARENT FOLDER)
     console.log(`📤 [UPLOAD] Uploading: ${fileName}`);
     const uploadResponse = await drive.files.create({
       auth,
@@ -79,7 +77,7 @@ export async function POST(request: NextRequest) {
         name: fileName,
         mimeType: "image/jpeg",
         description: `Bankroll Update - ${playerName}`,
-        parents: [BANKROLL_FOLDER_ID],
+        // ✅ KEIN parents array - uploaded in Root des Service Accounts
       },
       media: {
         mimeType: "image/jpeg",
@@ -108,6 +106,7 @@ export async function POST(request: NextRequest) {
 
     console.log("═══════════════════════════════════════════");
     console.log("✅ [SUCCESS] Upload complete!");
+    console.log(`   • File ID: ${fileId}`);
     console.log(`   • View: ${viewLink}`);
     console.log("═══════════════════════════════════════════");
 
@@ -139,7 +138,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ✅ Reject other methods
 export async function GET() {
   return NextResponse.json(
     { error: "Method not allowed. Use POST." },
