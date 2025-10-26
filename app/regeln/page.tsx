@@ -57,7 +57,7 @@ export default function RegelnPage() {
                   <div className="bg-slate-800/50 rounded p-4 border border-purple-600/30">
                     <h3 className="font-bold text-purple-400 mb-2">Abgabefrist</h3>
                     <p className="text-lg">
-                      Täglich bis <span className="font-bold text-pink-400">17:00 Uhr</span>
+                      Täglich bis <span className="font-bold text-pink-400">17:00 CET</span>
                     </p>
                   </div>
 
@@ -70,7 +70,7 @@ export default function RegelnPage() {
                       </li>
                       <li className="flex gap-2">
                         <span className="text-purple-400">✓</span>
-                        <span>Gewinn/Verlust des Tages</span>
+                        <span>Bankrollscreenshot</span>
                       </li>
                       <li className="flex gap-2">
                         <span className="text-purple-400">✓</span>
@@ -81,7 +81,7 @@ export default function RegelnPage() {
 
                   <div className="p-4 bg-purple-950/50 rounded border border-purple-700/50">
                     <p className="text-slate-300">
-                      ℹ️ Updates, die nach 17:00 Uhr eingegeben werden, gelten als nächster Tag!
+                      ℹ️ Updates, die nach 17:00 CET eingegeben werden, gelten als nächster Tag!
                     </p>
                   </div>
                 </div>
@@ -240,11 +240,14 @@ export default function RegelnPage() {
               Haben Sie Fragen zu den Regeln?
             </p>
             <p className="text-slate-300">
-              Kontaktieren Sie die Admin/Mod im <span className="font-bold text-indigo-400">Discord Server</span> 💬
+              Kontaktiere uns über unseren{' '}
+              <a 
+                href="https://discord.gg/YbeKE6YEa8" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="font-bold text-indigo-400 hover:text-indigo-300 hover:underline transition"
+              >
+                Discord Server
+              </a>
+              {' '}💬
             </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
