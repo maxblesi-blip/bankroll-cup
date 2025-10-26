@@ -37,6 +37,7 @@ interface Player {
   verification: string;
   lastUpdated: string;
   discordId?: string;
+  discordUsername?: string;
 }
 
 interface Registration {
@@ -403,7 +404,7 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 p-3 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-2xl md:text-4xl font-bold mb-6">🎛️ Admin Panel</h1>
+        <h1 className="text-2xl md:text-4xl font-bold mb-6">Dashboard</h1>
 
         {/* TABS - Responsive */}
         <div className="flex gap-1 md:gap-4 mb-6 border-b border-slate-700 pb-4 flex-wrap">
@@ -445,9 +446,10 @@ export default function AdminPanel() {
                   <thead>
                     <tr className="bg-slate-900 border-b border-slate-700">
                       <th className="px-4 py-3 text-left font-bold">Name</th>
-                      <th className="px-4 py-3 text-left font-bold">Email</th>
+                      <th className="px-4 py-3 text-left font-bold">Discord</th>
                       <th className="px-4 py-3 text-left font-bold">GGPoker</th>
                       <th className="px-4 py-3 text-right font-bold">€</th>
+                      <th className="px-4 py-3 text-left font-bold">Stream</th>
                       <th className="px-4 py-3 text-center font-bold">Aktionen</th>
                     </tr>
                   </thead>
@@ -524,11 +526,31 @@ export default function AdminPanel() {
                           className="border-b border-slate-700 hover:bg-slate-700/50 transition"
                         >
                           <td className="px-4 py-3 font-bold">{player.name}</td>
-                          <td className="px-4 py-3 text-sm text-slate-300">{player.email}</td>
+                          <td className="px-4 py-3 text-sm">
+                            <div className="text-slate-300">{player.discordUsername || '-'}</div>
+                            <div className="text-xs text-slate-500">{player.discordId || '-'}</div>
+                          </td>
                           <td className="px-4 py-3 text-sm text-slate-300">
                             {player.ggpokerNickname}
                           </td>
                           <td className="px-4 py-3 text-right font-bold text-green-400">
+                            €{player.bankroll}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {player.livestreamLink ? (
+                              <a 
+                                href={player.livestreamLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-purple-400 hover:text-purple-300 hover:underline font-bold"
+                              >
+                                Link 🔗
+                              </a>
+                            ) : (
+                              <span className="text-slate-600">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
                             €{player.bankroll}
                           </td>
                           <td className="px-4 py-3">
@@ -629,9 +651,29 @@ export default function AdminPanel() {
                         <p className="font-bold text-green-400">€{player.bankroll}</p>
                       </div>
                     </div>
-                    <div className="mb-3 pb-3 border-b border-slate-700">
-                      <p className="text-xs text-slate-400">GGPoker</p>
-                      <p className="text-sm">{player.ggpokerNickname}</p>
+                    <div className="mb-3 pb-3 border-b border-slate-700 space-y-2">
+                      <div>
+                        <p className="text-xs text-slate-400">Discord</p>
+                        <p className="text-sm font-bold">{player.discordUsername || '-'}</p>
+                        <p className="text-xs text-slate-500">{player.discordId || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">GGPoker</p>
+                        <p className="text-sm">{player.ggpokerNickname}</p>
+                      </div>
+                      {player.livestreamLink && (
+                        <div>
+                          <p className="text-xs text-slate-400">Livestream</p>
+                          <a 
+                            href={player.livestreamLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-purple-400 hover:text-purple-300 hover:underline font-bold"
+                          >
+                            Link 🔗
+                          </a>
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <button
