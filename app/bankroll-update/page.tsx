@@ -74,7 +74,7 @@ export default function BankrollUpdatePage() {
       return () => clearTimeout(timer);
     } else if (successCountdown === 0 && success) {
       // Redirect nach 0 Sekunden
-      router.push("/leaderboard");
+      router.push("/ranking");
     }
   }, [successCountdown, success, router]);
 

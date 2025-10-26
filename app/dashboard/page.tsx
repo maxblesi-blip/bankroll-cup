@@ -16,6 +16,7 @@ import {
   Link as LinkIcon,
   AlertCircle,
   ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 
 interface BankrollUpdate {
@@ -92,7 +93,8 @@ export default function AdminPanel() {
   >('pending');
   
   // ✅ NEU: Modal für Foto-Vergrößerung
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+const [selectedImage, setSelectedImage] = useState<string | null>(null);
+const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -1057,19 +1059,25 @@ export default function AdminPanel() {
                         EUR {update.bankroll}
                       </td>
                       <td className="px-6 py-4 text-sm">
-                        {update.proofImageUrl ? (
-                          <button
-                            onClick={() => setSelectedImage(update.proofImageUrl!)}
-                            className="text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 hover:underline"
-                            title="Klick zum Vergrößern"
-                          >
-                            <ZoomIn size={16} />
-                            🖼️ Foto
-                          </button>
-                        ) : (
-                          <span className="text-slate-600">-</span>
-                        )}
-                      </td>
+  {update.proofImageUrl ? (
+    <div 
+      onClick={() => {
+        setSelectedImage(update.proofImageUrl!);
+        setZoom(1);
+      }}
+      className="cursor-pointer hover:opacity-75 transition inline-block"
+      title="Klick zum Vergrößern"
+    >
+      <img 
+        src={update.proofImageUrl} 
+        alt="Beweisfoto" 
+        className="h-20 rounded border border-slate-600 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/50 transition object-cover"
+      />
+    </div>
+  ) : (
+    <span className="text-slate-600">-</span>
+  )}
+</td>
                       <td className="px-6 py-4 text-sm text-slate-300">
                         {update.notes || '-'}
                       </td>
@@ -1132,8 +1140,91 @@ export default function AdminPanel() {
                   ))}
                 </tbody>
               </table>
+              
             </div>
+</table>
+            </div>  {/* <- Schließe overflow-x-auto */}
 
+            {/* 🖼️ IMAGE MODAL mit ZOOM - HIER MUSS ES SEIN! */}
+            {selectedImage && (
+              <div 
+                className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
+                onClick={() => setSelectedImage(null)}
+              >
+                <div 
+                  className="bg-slate-800 rounded-lg max-w-4xl max-h-[90vh] overflow-auto relative"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Header */}
+                  <div className="sticky top-0 bg-slate-900 border-b border-slate-700 p-4 flex items-center justify-between">
+                    <h3 className="font-bold text-white">Beweisfoto</h3>
+                    <button
+                      onClick={() => setSelectedImage(null)}
+                      className="text-slate-400 hover:text-white"
+                    >
+                      <X size={24} />
+                    </button>
+                  </div>
+
+                  {/* Image Container */}
+                  <div className="p-4 flex items-center justify-center min-h-[400px]">
+                    <div className="overflow-auto max-h-[60vh] relative">
+                      <img
+                        src={selectedImage}
+                        alt="Beweisfoto"
+                        className="cursor-zoom-in rounded"
+                        style={{
+                          transform: `scale(${zoom})`,
+                          transition: "transform 0.2s ease",
+                        }}
+                        onClick={() => setZoom(zoom === 1 ? 1.5 : 1)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Controls */}
+                  <div className="bg-slate-900 border-t border-slate-700 p-4 flex items-center justify-center gap-4 flex-wrap">
+                    <button
+                      onClick={() => setZoom(Math.max(1, zoom - 0.5))}
+                      disabled={zoom <= 1}
+                      className="bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white p-2 rounded flex items-center gap-2"
+                    >
+                      <ZoomOut size={18} />
+                      Raus
+                    </button>
+                    
+                    <span className="text-slate-300 font-bold min-w-[50px] text-center">
+                      {Math.round(zoom * 100)}%
+                    </span>
+                    
+                    <button
+                      onClick={() => setZoom(Math.min(3, zoom + 0.5))}
+                      disabled={zoom >= 3}
+                      className="bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white p-2 rounded flex items-center gap-2"
+                    >
+                      <ZoomIn size={18} />
+                      Rein
+                    </button>
+
+                    <div className="flex-1"></div>
+
+                    <button
+                      onClick={() => setSelectedImage(null)}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-bold"
+                    >
+                      ✅ Schließen
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {filteredBankrollUpdates.length === 0 && (
+              <div className="text-center py-12 text-slate-400">
+                Keine Bankroll Updates in diesem Status
+              </div>
+            )}
+          </div>
             {filteredBankrollUpdates.length === 0 && (
               <div className="text-center py-12 text-slate-400">
                 Keine Bankroll Updates in diesem Status
