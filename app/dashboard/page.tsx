@@ -10,10 +10,8 @@ import {
   Trash2,
   Plus,
   Check,
-  Mail,
-  User,
-  Twitch,
-  Link as LinkIcon,
+  ChevronDown,
+  ChevronUp,
   AlertCircle,
   ZoomIn,
   ZoomOut,
@@ -92,9 +90,8 @@ export default function AdminPanel() {
     'pending' | 'approved' | 'rejected'
   >('pending');
   
-  // ✅ NEU: Modal für Foto-Vergrößerung
-const [selectedImage, setSelectedImage] = useState<string | null>(null);
-const [zoom, setZoom] = useState(1);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -116,14 +113,9 @@ const [zoom, setZoom] = useState(1);
     try {
       setLoading(true);
 
-      // ✅ Hole Spieler aus LEADERBOARD
-      console.log('📊 Lade Spieler aus Leaderboard...');
       const playersResponse = await fetch('/api/leaderboard');
       const playersData = await playersResponse.json();
 
-      console.log('📋 Leaderboard Rohdaten:', playersData);
-
-      // Konvertiere Leaderboard Daten ins Player Format
       if (playersData.players && Array.isArray(playersData.players)) {
         const convertedPlayers = playersData.players.map((p: any) => ({
           id: p.id || p.email || p.name,
@@ -136,19 +128,15 @@ const [zoom, setZoom] = useState(1);
           lastUpdated: p.lastUpdated || '',
           discordId: p.discordId || '',
         }));
-        console.log('✅ Konvertierte Spieler:', convertedPlayers);
         setPlayers(convertedPlayers);
       } else {
-        console.warn('⚠️  Keine Spieler in Leaderboard gefunden');
         setPlayers([]);
       }
 
-      // Hole Anmeldungen
       const regsResponse = await fetch('/api/registrations');
       const regsData = await regsResponse.json();
       setRegistrations(regsData || []);
 
-      // Hole Bankroll Updates
       const bankrollResponse = await fetch('/api/bankroll-updates');
       const bankrollData = await bankrollResponse.json();
       setBankrollUpdates(bankrollData || []);
@@ -187,8 +175,6 @@ const [zoom, setZoom] = useState(1);
     };
 
     try {
-      console.log(`➕ [ADD] Füge neuen Spieler hinzu:`, player);
-
       const response = await fetch('/api/leaderboard', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -196,7 +182,6 @@ const [zoom, setZoom] = useState(1);
       });
 
       if (response.ok) {
-        console.log(`✅ [ADD] Spieler erfolgreich hinzugefügt`);
         setPlayers([...players, player]);
         setShowAddModal(false);
         setNewPlayer({
@@ -209,11 +194,9 @@ const [zoom, setZoom] = useState(1);
         alert('✅ Spieler hinzugefügt!');
       } else {
         const error = await response.json();
-        console.error(`❌ [ADD] Fehler:`, error);
         alert('❌ Fehler beim Speichern!');
       }
     } catch (error) {
-      console.error('Error:', error);
       alert('❌ Fehler beim Speichern!');
     }
   };
@@ -252,8 +235,6 @@ const [zoom, setZoom] = useState(1);
   const handleDeletePlayer = async (player: Player) => {
     if (confirm('Spieler wirklich löschen?')) {
       try {
-        console.log(`🗑️ [DELETE] Lösche Spieler:`, player);
-
         const response = await fetch('/api/leaderboard', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
@@ -264,28 +245,21 @@ const [zoom, setZoom] = useState(1);
         });
 
         if (response.ok) {
-          console.log(`✅ Spieler gelöscht`);
           setPlayers(players.filter((p) => p.email !== player.email));
           alert('✅ Spieler gelöscht!');
         } else {
-          const error = await response.json();
-          console.error(`❌ Fehler:`, error);
           alert('❌ Fehler beim Löschen!');
         }
       } catch (error) {
-        console.error('Error:', error);
         alert('❌ Fehler beim Löschen!');
       }
     }
   };
 
-  // ✅ NEU: Approve mit neuer Route
   const handleApproveReg = async (reg: Registration) => {
     try {
       setApprovingId(reg.id);
       const user = session?.user as any;
-
-      console.log(`✅ Genehmige: ${reg.name}`);
 
       const response = await fetch('/api/registrations/approve', {
         method: 'POST',
@@ -297,9 +271,6 @@ const [zoom, setZoom] = useState(1);
       });
 
       if (response.ok) {
-        const data = await response.json();
-        console.log(`✅ ${data.message}`);
-
         setRegistrations(
           registrations.map((r) =>
             r.id === reg.id ? { ...r, status: 'approved' } : r
@@ -308,12 +279,9 @@ const [zoom, setZoom] = useState(1);
         setSelectedReg(null);
         alert('✅ Registrierung genehmigt!');
       } else {
-        const error = await response.json();
-        console.error(`❌ Fehler:`, error);
         alert('❌ Fehler beim Genehmigen!');
       }
     } catch (error) {
-      console.error('Error:', error);
       alert('❌ Fehler beim Genehmigen!');
     } finally {
       setApprovingId(null);
@@ -347,51 +315,38 @@ const [zoom, setZoom] = useState(1);
   };
 
   const handleApproveBankroll = async (updateId: string) => {
-  try {
-    // Finde das Update
-    const update = bankrollUpdates.find((u) => u.id === updateId);
-    if (!update) {
-      console.error("Update nicht gefunden");
-      return;
-    }
+    try {
+      const update = bankrollUpdates.find((u) => u.id === updateId);
+      if (!update) return;
 
-    // 1️⃣ Genehmige das Update
-    const response = await fetch('/api/bankroll-updates', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: updateId, status: 'approved' }),
-    });
-
-    if (response.ok) {
-      // 2️⃣ Aktualisiere auch die Bankroll im Leaderboard
-      console.log(`📊 [APPROVE] Aktualisiere Leaderboard Bankroll für: ${update.userName}`);
-      
-      await fetch('/api/leaderboard', {
+      const response = await fetch('/api/bankroll-updates', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: update.userId,
-          name: update.userName,
-          bankroll: update.bankroll,
-        }),
+        body: JSON.stringify({ id: updateId, status: 'approved' }),
       });
 
-      console.log(`✅ [APPROVE] Bankroll im Leaderboard aktualisiert: €${update.bankroll}`);
+      if (response.ok) {
+        await fetch('/api/leaderboard', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: update.userId,
+            name: update.userName,
+            bankroll: update.bankroll,
+          }),
+        });
 
-      // Update UI
-      setBankrollUpdates(
-        bankrollUpdates.map((u) =>
-          u.id === updateId ? { ...u, status: 'approved' as const } : u
-        )
-      );
-
-      // Lade Leaderboard neu
-      loadData();
+        setBankrollUpdates(
+          bankrollUpdates.map((u) =>
+            u.id === updateId ? { ...u, status: 'approved' as const } : u
+          )
+        );
+        loadData();
+      }
+    } catch (error) {
+      console.error('Error approving bankroll:', error);
     }
-  } catch (error) {
-    console.error('Error approving bankroll:', error);
-  }
-};
+  };
 
   const handleRejectBankroll = async (bankrollId: string) => {
     try {
@@ -400,33 +355,34 @@ const [zoom, setZoom] = useState(1);
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: 'rejected',
-          approvedBy: session?.user?.name || 'Admin',
+          rejectedBy: session?.user?.name || 'Admin',
         }),
       });
 
       if (response.ok) {
         setBankrollUpdates(
           bankrollUpdates.map((u) =>
-            u.id === bankrollId ? { ...u, status: 'rejected' } : u
+            u.id === bankrollId ? { ...u, status: 'rejected' as const } : u
           )
         );
-        alert('✅ Bankroll Update abgelehnt!');
       }
     } catch (error) {
-      alert('❌ Fehler beim Ablehnen!');
+      console.error('Error rejecting bankroll:', error);
     }
   };
 
   const handleDeleteBankroll = async (bankrollId: string) => {
-    if (confirm('Bankroll Update wirklich löschen?')) {
+    if (confirm('Update wirklich löschen?')) {
       try {
-        const response = await fetch(`/api/bankroll-updates/${bankrollId}`, {
+        const response = await fetch('/api/bankroll-updates', {
           method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: bankrollId }),
         });
 
         if (response.ok) {
           setBankrollUpdates(bankrollUpdates.filter((u) => u.id !== bankrollId));
-          alert('✅ Bankroll Update gelöscht!');
+          alert('✅ Update gelöscht!');
         }
       } catch (error) {
         alert('❌ Fehler beim Löschen!');
@@ -434,819 +390,727 @@ const [zoom, setZoom] = useState(1);
     }
   };
 
-  const filteredRegs = registrations.filter((r) => r.status === regFilter);
   const filteredBankrollUpdates = bankrollUpdates.filter(
     (u) => u.status === bankrollFilter
   );
 
-  if (status === 'loading' || loading) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-900">
-        <div className="text-2xl font-bold text-slate-300">Lädt...</div>
+      <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4">
+        <p>Wird geladen...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-8">
-      <h1 className="text-4xl font-bold mb-8">👥 Dashboard</h1>
+    <div className="min-h-screen bg-slate-900 text-slate-100 p-3 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-2xl md:text-4xl font-bold mb-6">🎛️ Admin Panel</h1>
 
-      {/* ✅ NEU: Image Modal */}
-      {selectedImage && (
-        <div
-          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
-          onClick={() => setSelectedImage(null)}
-        >
-          <div
-            className="relative max-w-2xl max-h-[80vh]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={selectedImage}
-              alt="Vergrößert"
-              className="w-full h-full object-contain rounded-lg"
-            />
+        {/* TABS - Responsive */}
+        <div className="flex gap-1 md:gap-4 mb-6 border-b border-slate-700 pb-4 flex-wrap">
+          {['members', 'registrations', 'bankroll'].map((t) => (
             <button
-              onClick={() => setSelectedImage(null)}
-              className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full transition"
-              title="Schließen"
+              key={t}
+              onClick={() => setTab(t as any)}
+              className={`px-2 md:px-4 py-2 text-xs md:text-base font-bold transition whitespace-nowrap ${
+                tab === t
+                  ? 'text-purple-400 border-b-2 border-purple-400'
+                  : 'text-slate-400 hover:text-slate-300'
+              }`}
             >
-              <X size={24} />
+              {t === 'members' && '👥 Mitglieder'}
+              {t === 'registrations' && '📝 Anmeldungen'}
+              {t === 'bankroll' && '💰 Bankroll'}
             </button>
-          </div>
+          ))}
         </div>
-      )}
 
-      {/* TAB NAVIGATION */}
-      <div className="flex gap-4 mb-8 border-b border-slate-700">
-        <button
-          onClick={() => setTab('members')}
-          className={`px-6 py-4 font-bold transition border-b-2 ${
-            tab === 'members'
-              ? 'border-blue-500 text-blue-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          👥 Spieler verwalten ({players.length})
-        </button>
-        <button
-          onClick={() => setTab('registrations')}
-          className={`px-6 py-4 font-bold transition border-b-2 ${
-            tab === 'registrations'
-              ? 'border-blue-500 text-blue-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          📝 Anmeldungen (
-          {registrations.filter((r) => r.status === 'pending').length})
-        </button>
-        <button
-          onClick={() => setTab('bankroll')}
-          className={`px-6 py-4 font-bold transition border-b-2 ${
-            tab === 'bankroll'
-              ? 'border-blue-500 text-blue-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          💰 Bankroll ({bankrollUpdates.filter((u) => u.status === 'pending').length})
-        </button>
-      </div>
+        {/* MEMBERS TAB */}
+        {tab === 'members' && (
+          <>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+              <h2 className="text-xl md:text-2xl font-bold">Mitglieder verwalten</h2>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-bold flex items-center justify-center gap-2 text-sm md:text-base"
+              >
+                <Plus size={18} />
+                Neues Mitglied
+              </button>
+            </div>
 
-      {/* MEMBERS TAB */}
-      {tab === 'members' && (
-        <>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Spieler verwalten</h2>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition flex items-center gap-2"
-            >
-              <Plus size={20} /> Spieler hinzufügen
-            </button>
-          </div>
-
-          {/* Add Modal */}
-          {showAddModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 max-w-md w-full">
-                <h3 className="text-2xl font-bold mb-6">Neuen Spieler hinzufügen</h3>
-                <div className="space-y-4">
-                  <input
-                    type="text"
-                    placeholder="Name"
-                    value={newPlayer.name}
-                    onChange={(e) =>
-                      setNewPlayer({ ...newPlayer, name: e.target.value })
-                    }
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-4 py-2 text-white"
-                  />
-                  <input
-                    type="email"
-                    placeholder="Email"
-                    value={newPlayer.email}
-                    onChange={(e) =>
-                      setNewPlayer({ ...newPlayer, email: e.target.value })
-                    }
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-4 py-2 text-white"
-                  />
-                  <input
-                    type="text"
-                    placeholder="GGPoker Nickname"
-                    value={newPlayer.ggpokerNickname}
-                    onChange={(e) =>
-                      setNewPlayer({ ...newPlayer, ggpokerNickname: e.target.value })
-                    }
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-4 py-2 text-white"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Bankroll (EUR)"
-                    value={newPlayer.bankroll}
-                    onChange={(e) =>
-                      setNewPlayer({ ...newPlayer, bankroll: e.target.value })
-                    }
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-4 py-2 text-white"
-                  />
-                  <input
-                    type="url"
-                    placeholder="Livestream Link (optional)"
-                    value={newPlayer.livestreamLink}
-                    onChange={(e) =>
-                      setNewPlayer({ ...newPlayer, livestreamLink: e.target.value })
-                    }
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-4 py-2 text-white"
-                  />
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleAddPlayer}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded transition"
-                    >
-                      ✅ Hinzufügen
-                    </button>
-                    <button
-                      onClick={() => setShowAddModal(false)}
-                      className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded transition"
-                    >
-                      ❌ Abbrechen
-                    </button>
-                  </div>
-                </div>
+            {/* Desktop Table */}
+            <div className="hidden md:block bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-900 border-b border-slate-700">
+                      <th className="px-4 py-3 text-left font-bold">Name</th>
+                      <th className="px-4 py-3 text-left font-bold">Email</th>
+                      <th className="px-4 py-3 text-left font-bold">GGPoker</th>
+                      <th className="px-4 py-3 text-right font-bold">€</th>
+                      <th className="px-4 py-3 text-center font-bold">Aktionen</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {players.map((player) =>
+                      editingId === player.id && editData ? (
+                        <tr key={player.id} className="border-b border-slate-700 bg-slate-700/50">
+                          <td className="px-4 py-3">
+                            <input
+                              type="text"
+                              value={editData.name}
+                              onChange={(e) =>
+                                setEditData({ ...editData, name: e.target.value })
+                              }
+                              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-sm"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="email"
+                              value={editData.email}
+                              onChange={(e) =>
+                                setEditData({ ...editData, email: e.target.value })
+                              }
+                              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-sm"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="text"
+                              value={editData.ggpokerNickname}
+                              onChange={(e) =>
+                                setEditData({
+                                  ...editData,
+                                  ggpokerNickname: e.target.value,
+                                })
+                              }
+                              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-sm"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="number"
+                              value={editData.bankroll}
+                              onChange={(e) =>
+                                setEditData({
+                                  ...editData,
+                                  bankroll: parseFloat(e.target.value) || 0,
+                                })
+                              }
+                              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-sm text-right"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-1 justify-center">
+                              <button
+                                onClick={handleSave}
+                                className="bg-green-600 hover:bg-green-700 text-white p-1.5 rounded text-xs"
+                              >
+                                <Check size={16} />
+                              </button>
+                              <button
+                                onClick={handleCancel}
+                                className="bg-slate-600 hover:bg-slate-700 text-white p-1.5 rounded text-xs"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        <tr
+                          key={player.id}
+                          className="border-b border-slate-700 hover:bg-slate-700/50 transition"
+                        >
+                          <td className="px-4 py-3 font-bold">{player.name}</td>
+                          <td className="px-4 py-3 text-sm text-slate-300">{player.email}</td>
+                          <td className="px-4 py-3 text-sm text-slate-300">
+                            {player.ggpokerNickname}
+                          </td>
+                          <td className="px-4 py-3 text-right font-bold text-green-400">
+                            €{player.bankroll}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-1 justify-center">
+                              <button
+                                onClick={() => handleEdit(player)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white p-1.5 rounded text-xs"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleDeletePlayer(player)}
+                                className="bg-red-600 hover:bg-red-700 text-white p-1.5 rounded text-xs"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
-          )}
 
-          <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-slate-900 border-b border-slate-700">
-                    <th className="px-6 py-4 text-left font-bold">Name</th>
-                    <th className="px-6 py-4 text-left font-bold">Email</th>
-                    <th className="px-6 py-4 text-left font-bold">GGPoker</th>
-                    <th className="px-6 py-4 text-left font-bold">Discord ID</th>
-                    <th className="px-6 py-4 text-right font-bold">Bankroll</th>
-                    <th className="px-6 py-4 text-left font-bold">Livestream</th>
-                    <th className="px-6 py-4 text-center font-bold">Aktionen</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {players.map((player) =>
-                    editingId === player.id && editData ? (
-                      <tr key={player.id} className="bg-slate-700 border-b border-slate-700">
-                        <td className="px-6 py-4">
-                          <input
-                            type="text"
-                            value={editData.name}
-                            onChange={(e) =>
-                              setEditData({ ...editData, name: e.target.value })
-                            }
-                            className="w-full bg-slate-600 border border-slate-500 rounded px-2 py-1"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <input
-                            type="email"
-                            value={editData.email}
-                            disabled
-                            className="w-full bg-slate-600 border border-slate-500 rounded px-2 py-1 opacity-50 cursor-not-allowed"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <input
-                            type="text"
-                            value={editData.ggpokerNickname}
-                            onChange={(e) =>
-                              setEditData({
-                                ...editData,
-                                ggpokerNickname: e.target.value,
-                              })
-                            }
-                            className="w-full bg-slate-600 border border-slate-500 rounded px-2 py-1"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <input
-                            type="text"
-                            value={editData.discordId || ''}
-                            onChange={(e) =>
-                              setEditData({
-                                ...editData,
-                                discordId: e.target.value,
-                              })
-                            }
-                            className="w-full bg-slate-600 border border-slate-500 rounded px-2 py-1 font-mono text-sm"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <input
-                            type="number"
-                            value={editData.bankroll}
-                            onChange={(e) =>
-                              setEditData({
-                                ...editData,
-                                bankroll: parseFloat(e.target.value),
-                              })
-                            }
-                            className="w-full bg-slate-600 border border-slate-500 rounded px-2 py-1 text-right"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <input
-                            type="url"
-                            value={editData.livestreamLink}
-                            onChange={(e) =>
-                              setEditData({
-                                ...editData,
-                                livestreamLink: e.target.value,
-                              })
-                            }
-                            className="w-full bg-slate-600 border border-slate-500 rounded px-2 py-1"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2 justify-center">
-                            <button
-                              onClick={handleSave}
-                              className="bg-green-600 hover:bg-green-700 text-white p-2 rounded transition"
-                              title="Speichern"
-                            >
-                              <Save size={18} />
-                            </button>
-                            <button
-                              onClick={handleCancel}
-                              className="bg-red-600 hover:bg-red-700 text-white p-2 rounded transition"
-                              title="Abbrechen"
-                            >
-                              <X size={18} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      <tr
-                        key={player.id}
-                        className="border-b border-slate-700 hover:bg-slate-700/50 transition"
+            {/* Mobile Cards */}
+            <div className="md:hidden space-y-3">
+              {players.map((player) =>
+                editingId === player.id && editData ? (
+                  <div key={player.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4 space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Name"
+                      value={editData.name}
+                      onChange={(e) =>
+                        setEditData({ ...editData, name: e.target.value })
+                      }
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white text-sm"
+                    />
+                    <input
+                      type="email"
+                      placeholder="Email"
+                      value={editData.email}
+                      onChange={(e) =>
+                        setEditData({ ...editData, email: e.target.value })
+                      }
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white text-sm"
+                    />
+                    <input
+                      type="text"
+                      placeholder="GGPoker"
+                      value={editData.ggpokerNickname}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          ggpokerNickname: e.target.value,
+                        })
+                      }
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white text-sm"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Bankroll"
+                      value={editData.bankroll}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          bankroll: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white text-sm"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSave}
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded font-bold text-sm"
                       >
-                        <td className="px-6 py-4 font-bold">{player.name}</td>
-                        <td className="px-6 py-4 text-sm text-blue-400">
-                          {player.email}
-                        </td>
-                        <td className="px-6 py-4 text-sm">
-                          {player.ggpokerNickname}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-mono text-purple-400 border-l border-purple-700">
-                          {player.discordId || '-'}
-                        </td>
-                        <td className="px-6 py-4 text-right font-bold text-green-400">
-                          EUR {player.bankroll}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-purple-400">
-                          {player.livestreamLink ? (
-                            <a
-                              href={player.livestreamLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="hover:underline"
-                            >
-                              Link
-                            </a>
-                          ) : (
-                            '-'
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2 justify-center">
-                            <button
-                              onClick={() => handleEdit(player)}
-                              className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded transition"
-                              title="Bearbeiten"
-                            >
-                              <Edit2 size={18} />
-                            </button>
-                            <button
-                              onClick={() => handleDeletePlayer(player)}
-                              className="bg-red-600 hover:bg-red-700 text-white p-2 rounded transition"
-                              title="Löschen"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  )}
-                </tbody>
-              </table>
+                        ✅ Speichern
+                      </button>
+                      <button
+                        onClick={handleCancel}
+                        className="flex-1 bg-slate-600 hover:bg-slate-700 text-white py-2 rounded font-bold text-sm"
+                      >
+                        ❌ Abbrechen
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div key={player.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                    <div className="flex justify-between items-start gap-3 mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-bold">{player.name}</h3>
+                        <p className="text-xs text-slate-400">{player.email}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-slate-400">Bankroll</p>
+                        <p className="font-bold text-green-400">€{player.bankroll}</p>
+                      </div>
+                    </div>
+                    <div className="mb-3 pb-3 border-b border-slate-700">
+                      <p className="text-xs text-slate-400">GGPoker</p>
+                      <p className="text-sm">{player.ggpokerNickname}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEdit(player)}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-bold text-sm"
+                      >
+                        ✏️ Bearbeiten
+                      </button>
+                      <button
+                        onClick={() => handleDeletePlayer(player)}
+                        className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded font-bold text-sm"
+                      >
+                        🗑️ Löschen
+                      </button>
+                    </div>
+                  </div>
+                )
+              )}
             </div>
 
             {players.length === 0 && (
               <div className="text-center py-12 text-slate-400">
-                Keine Spieler vorhanden
+                Keine Mitglieder vorhanden
               </div>
             )}
-          </div>
-        </>
-      )}
+          </>
+        )}
 
-      {/* REGISTRATIONS TAB - CRM VIEW */}
-      {tab === 'registrations' && (
-        <>
-          <h2 className="text-2xl font-bold mb-6">Anmeldungen verwalten (CRM)</h2>
+        {/* REGISTRATIONS TAB */}
+        {tab === 'registrations' && (
+          <>
+            <h2 className="text-xl md:text-2xl font-bold mb-6">Anmeldungen verwalten</h2>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Filter Sidebar */}
-            <div className="lg:col-span-1">
-              <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 space-y-2 sticky top-20">
-                <h3 className="font-bold text-purple-400 mb-3">Filter</h3>
+            <div className="bg-slate-800 border border-slate-700 rounded-lg p-2 md:p-4 mb-6 flex flex-wrap gap-2 md:gap-3">
+              {['pending', 'approved', 'rejected'].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setRegFilter(status as any)}
+                  className={`px-2 md:px-4 py-2 text-xs md:text-base rounded font-bold transition ${
+                    regFilter === status
+                      ? status === 'pending'
+                        ? 'bg-yellow-600 text-white'
+                        : status === 'approved'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-red-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {status === 'pending' && `⏳ (${registrations.filter((r) => r.status === 'pending').length})`}
+                  {status === 'approved' && `✅ (${registrations.filter((r) => r.status === 'approved').length})`}
+                  {status === 'rejected' && `❌ (${registrations.filter((r) => r.status === 'rejected').length})`}
+                </button>
+              ))}
+            </div>
 
-                {[
-                  {
-                    value: 'pending',
-                    label: '⏳ Ausstehend',
-                    count: registrations.filter((r) => r.status === 'pending').length,
-                  },
-                  {
-                    value: 'approved',
-                    label: '✅ Genehmigt',
-                    count: registrations.filter((r) => r.status === 'approved').length,
-                  },
-                  {
-                    value: 'rejected',
-                    label: '❌ Abgelehnt',
-                    count: registrations.filter((r) => r.status === 'rejected').length,
-                  },
-                ].map((f) => (
+            <div className="space-y-3">
+              {registrations
+                .filter((r) => r.status === regFilter)
+                .map((reg) => (
                   <button
-                    key={f.value}
-                    onClick={() => setRegFilter(f.value as any)}
-                    className={`w-full text-left px-4 py-3 rounded-lg transition ${
-                      regFilter === f.value
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                    }`}
+                    key={reg.id}
+                    onClick={() => setSelectedReg(selectedReg?.id === reg.id ? null : reg)}
+                    className="w-full text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-4 transition"
                   >
-                    <span className="font-bold">{f.label}</span>
-                    <span className="float-right text-xs bg-slate-900 px-2 py-1 rounded">
-                      {f.count}
-                    </span>
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold truncate">{reg.name}</h3>
+                        <p className="text-sm text-slate-400 truncate">{reg.email}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-1 rounded-full font-bold whitespace-nowrap ${
+                          reg.status === 'pending' ? 'bg-yellow-900/30 text-yellow-300' :
+                          reg.status === 'approved' ? 'bg-green-900/30 text-green-300' :
+                          'bg-red-900/30 text-red-300'
+                        }`}>
+                          {reg.status === 'pending' ? '⏳' : reg.status === 'approved' ? '✅' : '❌'}
+                        </span>
+                        <ChevronDown size={16} className={`transition ${selectedReg?.id === reg.id ? 'rotate-180' : ''}`} />
+                      </div>
+                    </div>
+
+                    {selectedReg?.id === reg.id && (
+                      <div className="mt-4 pt-4 border-t border-slate-700 space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-xs text-slate-400">GGPoker</p>
+                            <p className="font-bold">{reg.ggpokerNickname}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-400">Bankroll</p>
+                            <p className="font-bold text-green-400">€{reg.bankroll}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-400">Discord</p>
+                            <p className="font-bold">{reg.discord}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-400">Erfahrung</p>
+                            <p className="font-bold capitalize">{reg.experience}</p>
+                          </div>
+                        </div>
+
+                        {reg.livestreamLink && (
+                          <div>
+                            <p className="text-xs text-slate-400 mb-1">Stream Link</p>
+                            <a href={reg.livestreamLink} target="_blank" rel="noopener noreferrer"
+                              className="text-sm text-purple-400 break-all hover:text-purple-300">
+                              {reg.livestreamLink}
+                            </a>
+                          </div>
+                        )}
+                        
+                        {reg.status === 'pending' && (
+                          <div className="flex gap-2 pt-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApproveReg(reg);
+                              }}
+                              disabled={approvingId === reg.id}
+                              className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-slate-600 text-white py-2 rounded font-bold text-sm"
+                            >
+                              {approvingId === reg.id ? 'Wird genehmigt...' : '✅ Genehmigen'}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRejectReg(reg.id);
+                              }}
+                              className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded font-bold text-sm"
+                            >
+                              ❌ Ablehnen
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </button>
                 ))}
+            </div>
+          </>
+        )}
+
+        {/* BANKROLL TAB */}
+        {tab === 'bankroll' && (
+          <>
+            <h2 className="text-xl md:text-2xl font-bold mb-6">Bankroll Updates</h2>
+
+            <div className="bg-slate-800 border border-slate-700 rounded-lg p-2 md:p-4 mb-6 flex flex-wrap gap-2 md:gap-3">
+              {['pending', 'approved', 'rejected'].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setBankrollFilter(status as any)}
+                  className={`px-2 md:px-4 py-2 text-xs md:text-base rounded font-bold transition ${
+                    bankrollFilter === status
+                      ? status === 'pending'
+                        ? 'bg-yellow-600 text-white'
+                        : status === 'approved'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-red-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {status === 'pending' && `⏳ (${bankrollUpdates.filter((u) => u.status === 'pending').length})`}
+                  {status === 'approved' && `✅ (${bankrollUpdates.filter((u) => u.status === 'approved').length})`}
+                  {status === 'rejected' && `❌ (${bankrollUpdates.filter((u) => u.status === 'rejected').length})`}
+                </button>
+              ))}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden md:block bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-900 border-b border-slate-700">
+                      <th className="px-4 py-3 text-left font-bold">Spieler</th>
+                      <th className="px-4 py-3 text-right font-bold">€</th>
+                      <th className="px-4 py-3 text-left font-bold">Foto</th>
+                      <th className="px-4 py-3 text-left font-bold">Notizen</th>
+                      <th className="px-4 py-3 text-left font-bold">Status</th>
+                      <th className="px-4 py-3 text-left font-bold">Datum</th>
+                      <th className="px-4 py-3 text-center font-bold">Aktionen</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredBankrollUpdates.map((update) => (
+                      <tr key={update.id} className="border-b border-slate-700 hover:bg-slate-700/50">
+                        <td className="px-4 py-3 font-bold">{update.userName}</td>
+                        <td className="px-4 py-3 text-right font-bold text-green-400">€{update.bankroll}</td>
+                        <td className="px-4 py-3">
+                          {update.proofImageUrl ? (
+                            <div 
+                              onClick={() => {
+                                setSelectedImage(update.proofImageUrl!);
+                                setZoom(1);
+                              }}
+                              className="cursor-pointer inline-block"
+                            >
+                              <img 
+                                src={update.proofImageUrl} 
+                                alt="Foto"
+                                className="h-12 rounded border border-slate-600 hover:border-purple-400"
+                              />
+                            </div>
+                          ) : (
+                            <span className="text-slate-600">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-300 max-w-xs truncate">
+                          {update.notes || '-'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2 py-1 rounded-full font-bold ${
+                            update.status === 'pending' ? 'bg-yellow-900 text-yellow-300' :
+                            update.status === 'approved' ? 'bg-green-900 text-green-300' :
+                            'bg-red-900 text-red-300'
+                          }`}>
+                            {update.status === 'pending' ? '⏳' : update.status === 'approved' ? '✅' : '❌'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">
+                          {new Date(update.createdAt).toLocaleDateString('de-DE')}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1 justify-center">
+                            {update.status === 'pending' && (
+                              <>
+                                <button
+                                  onClick={() => handleApproveBankroll(update.id)}
+                                  className="bg-green-600 hover:bg-green-700 text-white p-1.5 rounded text-xs"
+                                  title="Genehmigen"
+                                >
+                                  ✅
+                                </button>
+                                <button
+                                  onClick={() => handleRejectBankroll(update.id)}
+                                  className="bg-red-600 hover:bg-red-700 text-white p-1.5 rounded text-xs"
+                                  title="Ablehnen"
+                                >
+                                  ❌
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => handleDeleteBankroll(update.id)}
+                              className="bg-slate-600 hover:bg-slate-700 text-white p-1.5 rounded text-xs"
+                              title="Löschen"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
 
-            {/* Main Content */}
-            <div className="lg:col-span-2">
-              {selectedReg ? (
-                // ✅ DETAIL VIEW
-                <div className="bg-slate-800 border border-slate-700 rounded-lg p-8">
-                  <button
-                    onClick={() => setSelectedReg(null)}
-                    className="text-slate-400 hover:text-slate-300 mb-6 font-bold"
-                  >
-                    ← Zurück
-                  </button>
-
-                  <div className="space-y-6">
-                    {/* Header */}
-                    <div className="border-b border-slate-700 pb-6">
-                      <h2 className="text-3xl font-bold mb-2">{selectedReg.name}</h2>
-                      <div className="flex gap-2">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            selectedReg.status === 'pending'
-                              ? 'bg-yellow-900/30 border border-yellow-700 text-yellow-300'
-                              : selectedReg.status === 'approved'
-                              ? 'bg-green-900/30 border border-green-700 text-green-300'
-                              : 'bg-red-900/30 border border-red-700 text-red-300'
-                          }`}
-                        >
-                          {selectedReg.status === 'pending'
-                            ? '⏳ Ausstehend'
-                            : selectedReg.status === 'approved'
-                            ? '✅ Genehmigt'
-                            : '❌ Abgelehnt'}
-                        </span>
-                        {selectedReg.approvedBy && (
-                          <span className="text-xs text-slate-400">
-                            Genehmigt von: {selectedReg.approvedBy}
-                          </span>
-                        )}
-                      </div>
+            {/* Mobile Cards */}
+            <div className="md:hidden space-y-3">
+              {filteredBankrollUpdates.map((update) => (
+                <div key={update.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                  <div className="flex justify-between items-start gap-3 mb-3">
+                    <div>
+                      <h3 className="font-bold">{update.userName}</h3>
+                      <p className="text-xs text-slate-400">{new Date(update.createdAt).toLocaleDateString('de-DE')}</p>
                     </div>
-
-                    {/* Info Grid */}
-                    <div className="grid grid-cols-2 gap-6">
-                      {/* Email */}
-                      <div className="bg-slate-900 rounded-lg p-4">
-                        <p className="text-xs text-slate-400 mb-1 flex items-center gap-1">
-                          <Mail size={14} /> Email
-                        </p>
-                        <p className="font-mono text-sm break-all">{selectedReg.email}</p>
-                      </div>
-
-                      {/* Discord */}
-                      <div className="bg-slate-900 rounded-lg p-4">
-                        <p className="text-xs text-slate-400 mb-1 flex items-center gap-1">
-                          <User size={14} /> Discord
-                        </p>
-                        <p className="font-bold text-indigo-400">{selectedReg.discord}</p>
-                      </div>
-
-                      {/* Discord ID ✅ */}
-                      <div className="bg-slate-900 rounded-lg p-4 border border-purple-700">
-                        <p className="text-xs text-slate-400 mb-1 flex items-center gap-1">
-                          🔑 Discord ID
-                        </p>
-                        <p className="font-mono text-sm text-purple-400">
-                          {selectedReg.discordId || '—'}
-                        </p>
-                      </div>
-
-                      {/* GGPoker */}
-                      <div className="bg-slate-900 rounded-lg p-4">
-                        <p className="text-xs text-slate-400 mb-1">♠️ GGPoker Nickname</p>
-                        <p className="font-bold text-green-400">{selectedReg.ggpokerNickname}</p>
-                      </div>
-
-                      {/* Livestream */}
-                      {selectedReg.livestreamLink && (
-                        <div className="bg-slate-900 rounded-lg p-4 col-span-2">
-                          <p className="text-xs text-slate-400 mb-1 flex items-center gap-1">
-                            <Twitch size={14} /> Livestream
-                          </p>
-                          <a
-                            href={selectedReg.livestreamLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1"
-                          >
-                            <LinkIcon size={14} /> Link öffnen
-                          </a>
-                        </div>
-                      )}
-
-                      {/* Datum */}
-                      <div className="bg-slate-900 rounded-lg p-4 col-span-2">
-                        <p className="text-xs text-slate-400 mb-1">📅 Registrierungsdatum</p>
-                        <p className="text-sm">
-                          {new Date(selectedReg.createdAt).toLocaleDateString('de-DE')}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    {selectedReg.status === 'pending' && (
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => handleApproveReg(selectedReg)}
-                          disabled={approvingId === selectedReg.id}
-                          className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-bold py-3 rounded-lg transition flex items-center justify-center gap-2"
-                        >
-                          {approvingId === selectedReg.id ? (
-                            <>
-                              <AlertCircle size={20} className="animate-pulse" />
-                              Wird genehmigt...
-                            </>
-                          ) : (
-                            <>
-                              <Check size={20} />
-                              ✅ Genehmigen
-                            </>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => handleRejectReg(selectedReg.id)}
-                          className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition flex items-center justify-center gap-2"
-                        >
-                          <X size={20} />
-                          ❌ Ablehnen
-                        </button>
-                      </div>
-                    )}
-
-                    {selectedReg.status === 'approved' && (
-                      <div className="bg-green-900/30 border border-green-700 rounded-lg p-4 text-green-300">
-                        ✅ Diese Registrierung wurde bereits genehmigt
-                      </div>
-                    )}
-
-                    {selectedReg.status === 'rejected' && (
-                      <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 text-red-300">
-                        ❌ Diese Registrierung wurde abgelehnt
-                      </div>
-                    )}
+                    <span className={`text-xs px-2 py-1 rounded-full font-bold whitespace-nowrap ${
+                      update.status === 'pending' ? 'bg-yellow-900 text-yellow-300' :
+                      update.status === 'approved' ? 'bg-green-900 text-green-300' :
+                      'bg-red-900 text-red-300'
+                    }`}>
+                      {update.status === 'pending' ? '⏳ Ausstehend' : update.status === 'approved' ? '✅ Genehmigt' : '❌ Abgelehnt'}
+                    </span>
                   </div>
-                </div>
-              ) : (
-                // ✅ LIST VIEW
-                <div className="space-y-3">
-                  {filteredRegs.length > 0 ? (
-                    filteredRegs.map((reg) => (
-                      <button
-                        key={reg.id}
-                        onClick={() => setSelectedReg(reg)}
-                        className="w-full text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-4 transition"
+
+                  {update.proofImageUrl && (
+                    <div className="mb-3 pb-3 border-b border-slate-700">
+                      <div 
+                        onClick={() => {
+                          setSelectedImage(update.proofImageUrl!);
+                          setZoom(1);
+                        }}
+                        className="cursor-pointer inline-block"
                       >
-                        <div className="flex justify-between items-start gap-4">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-lg mb-1">{reg.name}</h3>
-                            <p className="text-sm text-slate-400 truncate">{reg.email}</p>
-                            <div className="flex gap-2 mt-2 flex-wrap">
-                              <span className="text-xs bg-slate-900 px-2 py-1 rounded text-slate-300">
-                                {reg.discord}
-                              </span>
-                              {reg.discordId && (
-                                <span className="text-xs bg-purple-900/30 px-2 py-1 rounded text-purple-300 border border-purple-700 font-mono">
-                                  ID: {reg.discordId}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex-shrink-0 text-right">
-                            {reg.status === 'pending' && (
-                              <span className="inline-block bg-yellow-900/30 border border-yellow-700 text-yellow-300 px-3 py-1 rounded-full text-xs font-bold">
-                                ⏳ Ausstehend
-                              </span>
-                            )}
-                            {reg.status === 'approved' && (
-                              <span className="inline-block bg-green-900/30 border border-green-700 text-green-300 px-3 py-1 rounded-full text-xs font-bold">
-                                ✅ Genehmigt
-                              </span>
-                            )}
-                            {reg.status === 'rejected' && (
-                              <span className="inline-block bg-red-900/30 border border-red-700 text-red-300 px-3 py-1 rounded-full text-xs font-bold">
-                                ❌ Abgelehnt
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 text-center">
-                      <p className="text-slate-400">
-                        Keine Registrierungen in dieser Kategorie
-                      </p>
+                        <img 
+                          src={update.proofImageUrl} 
+                          alt="Beweisfoto"
+                          className="h-32 rounded border border-slate-600 hover:border-purple-400"
+                        />
+                      </div>
                     </div>
                   )}
-                </div>
-              )}
-            </div>
-          </div>
-        </>
-      )}
 
-      {/* BANKROLL TAB */}
-      {tab === 'bankroll' && (
-        <>
-          <h2 className="text-2xl font-bold mb-6">Bankroll Updates verwalten</h2>
-
-          <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 mb-8 flex flex-wrap gap-3">
-            <button
-              onClick={() => setBankrollFilter('pending')}
-              className={`px-4 py-2 rounded font-bold transition ${
-                bankrollFilter === 'pending'
-                  ? 'bg-yellow-600 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              ⏳ Ausstehend (
-              {bankrollUpdates.filter((u) => u.status === 'pending').length})
-            </button>
-            <button
-              onClick={() => setBankrollFilter('approved')}
-              className={`px-4 py-2 rounded font-bold transition ${
-                bankrollFilter === 'approved'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              ✅ Genehmigt (
-              {bankrollUpdates.filter((u) => u.status === 'approved').length})
-            </button>
-            <button
-              onClick={() => setBankrollFilter('rejected')}
-              className={`px-4 py-2 rounded font-bold transition ${
-                bankrollFilter === 'rejected'
-                  ? 'bg-red-600 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              ❌ Abgelehnt (
-              {bankrollUpdates.filter((u) => u.status === 'rejected').length})
-            </button>
-          </div>
-
-          <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-slate-900 border-b border-slate-700">
-                    <th className="px-6 py-4 text-left font-bold">Spieler</th>
-                    <th className="px-6 py-4 text-right font-bold">Bankroll</th>
-                    <th className="px-6 py-4 text-left font-bold">Beweisfoto</th>
-                    <th className="px-6 py-4 text-left font-bold">Notizen</th>
-                    <th className="px-6 py-4 text-left font-bold">Status</th>
-                    <th className="px-6 py-4 text-left font-bold">Datum</th>
-                    <th className="px-6 py-4 text-center font-bold">Aktionen</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredBankrollUpdates.map((update) => (
-                    <tr
-                      key={update.id}
-                      className="border-b border-slate-700 hover:bg-slate-700/50 transition"
-                    >
-                      <td className="px-6 py-4 font-bold">{update.userName}</td>
-                      <td className="px-6 py-4 text-right font-bold text-green-400">
-                        EUR {update.bankroll}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-  {update.proofImageUrl ? (
-    <div 
-      onClick={() => {
-        setSelectedImage(update.proofImageUrl!);
-        setZoom(1);
-      }}
-      className="cursor-pointer hover:opacity-75 transition inline-block"
-      title="Klick zum Vergrößern"
-    >
-      <img 
-        src={update.proofImageUrl} 
-        alt="Beweisfoto" 
-        className="h-20 rounded border border-slate-600 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/50 transition object-cover"
-      />
-    </div>
-  ) : (
-    <span className="text-slate-600">-</span>
-  )}
-</td>
-                      <td className="px-6 py-4 text-sm text-slate-300">
-                        {update.notes || '-'}
-                      </td>
-                      <td className="px-6 py-4">
-                        {update.status === 'approved' && (
-                          <span className="bg-green-900 text-green-300 px-3 py-1 rounded-full text-sm font-bold">
-                            ✅ Genehmigt
-                          </span>
-                        )}
-                        {update.status === 'rejected' && (
-                          <span className="bg-red-900 text-red-300 px-3 py-1 rounded-full text-sm font-bold">
-                            ❌ Abgelehnt
-                          </span>
-                        )}
-                        {update.status === 'pending' && (
-                          <span className="bg-yellow-900 text-yellow-300 px-3 py-1 rounded-full text-sm font-bold">
-                            ⏳ Ausstehend
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-400">
-                        {new Date(update.createdAt).toLocaleString('de-DE', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2 justify-center">
-                          {update.status === 'pending' && (
-                            <>
-                              <button
-                                onClick={() => handleApproveBankroll(update.id)}
-                                className="bg-green-600 hover:bg-green-700 text-white p-2 rounded transition"
-                                title="Genehmigen"
-                              >
-                                <Check size={18} />
-                              </button>
-                              <button
-                                onClick={() => handleRejectBankroll(update.id)}
-                                className="bg-red-600 hover:bg-red-700 text-white p-2 rounded transition"
-                                title="Ablehnen"
-                              >
-                                <X size={18} />
-                              </button>
-                            </>
-                          )}
-                          <button
-                            onClick={() => handleDeleteBankroll(update.id)}
-                            className="bg-slate-600 hover:bg-slate-700 text-white p-2 rounded transition"
-                            title="Löschen"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-               </tbody>
-             </table>
-            </div>  {/* <- Schließe overflow-x-auto div */}
-
-            {/* 🖼️ IMAGE MODAL mit ZOOM */}
-            {selectedImage && (
-              <div 
-                className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
-                onClick={() => setSelectedImage(null)}
-              >
-                <div 
-                  className="bg-slate-800 rounded-lg max-w-4xl max-h-[90vh] overflow-auto relative"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* Header */}
-                  <div className="sticky top-0 bg-slate-900 border-b border-slate-700 p-4 flex items-center justify-between">
-                    <h3 className="font-bold text-white">Beweisfoto</h3>
-                    <button
-                      onClick={() => setSelectedImage(null)}
-                      className="text-slate-400 hover:text-white"
-                    >
-                      <X size={24} />
-                    </button>
+                  <div className="mb-3">
+                    <p className="text-xs text-slate-400">Bankroll</p>
+                    <p className="text-lg font-bold text-green-400">€{update.bankroll}</p>
                   </div>
 
-                  {/* Image Container */}
-                  <div className="p-4 flex items-center justify-center min-h-[400px]">
-                    <div className="overflow-auto max-h-[60vh] relative">
-                      <img
-                        src={selectedImage}
-                        alt="Beweisfoto"
-                        className="cursor-zoom-in rounded"
-                        style={{
-                          transform: `scale(${zoom})`,
-                          transition: "transform 0.2s ease",
-                        }}
-                        onClick={() => setZoom(zoom === 1 ? 1.5 : 1)}
-                      />
+                  {update.notes && (
+                    <div className="mb-3 pb-3 border-b border-slate-700">
+                      <p className="text-xs text-slate-400">Notizen</p>
+                      <p className="text-sm">{update.notes}</p>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Controls */}
-                  <div className="bg-slate-900 border-t border-slate-700 p-4 flex items-center justify-center gap-4 flex-wrap">
+                  <div className="flex flex-col gap-2">
+                    {update.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => handleApproveBankroll(update.id)}
+                          className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded font-bold text-sm"
+                        >
+                          ✅ Genehmigen
+                        </button>
+                        <button
+                          onClick={() => handleRejectBankroll(update.id)}
+                          className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded font-bold text-sm"
+                        >
+                          ❌ Ablehnen
+                        </button>
+                      </>
+                    )}
                     <button
-                      onClick={() => setZoom(Math.max(1, zoom - 0.5))}
-                      disabled={zoom <= 1}
-                      className="bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white p-2 rounded flex items-center gap-2"
+                      onClick={() => handleDeleteBankroll(update.id)}
+                      className="w-full bg-slate-600 hover:bg-slate-700 text-white py-2 rounded font-bold text-sm"
                     >
-                      <ZoomOut size={18} />
-                      Raus
-                    </button>
-                    
-                    <span className="text-slate-300 font-bold min-w-[50px] text-center">
-                      {Math.round(zoom * 100)}%
-                    </span>
-                    
-                    <button
-                      onClick={() => setZoom(Math.min(3, zoom + 0.5))}
-                      disabled={zoom >= 3}
-                      className="bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white p-2 rounded flex items-center gap-2"
-                    >
-                      <ZoomIn size={18} />
-                      Rein
-                    </button>
-
-                    <div className="flex-1"></div>
-
-                    <button
-                      onClick={() => setSelectedImage(null)}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-bold"
-                    >
-                      ✅ Schließen
+                      🗑️ Löschen
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
 
             {filteredBankrollUpdates.length === 0 && (
               <div className="text-center py-12 text-slate-400">
-                Keine Bankroll Updates in diesem Status
+                Keine Updates in diesem Status
               </div>
             )}
+          </>
+        )}
+
+        {/* IMAGE MODAL */}
+        {selectedImage && (
+          <div 
+            className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
+            onClick={() => setSelectedImage(null)}
+          >
+            <div 
+              className="bg-slate-800 rounded-lg max-w-4xl max-h-[90vh] overflow-auto relative w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="sticky top-0 bg-slate-900 border-b border-slate-700 p-3 md:p-4 flex items-center justify-between">
+                <h3 className="font-bold text-white text-sm md:text-base">Beweisfoto</h3>
+                <button
+                  onClick={() => setSelectedImage(null)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-4 flex items-center justify-center min-h-[300px] md:min-h-[400px]">
+                <div className="overflow-auto max-h-[50vh] md:max-h-[60vh] relative">
+                  <img
+                    src={selectedImage}
+                    alt="Beweisfoto"
+                    className="cursor-zoom-in rounded"
+                    style={{
+                      transform: `scale(${zoom})`,
+                      transition: "transform 0.2s ease",
+                    }}
+                    onClick={() => setZoom(zoom === 1 ? 1.5 : 1)}
+                  />
+                </div>
+              </div>
+
+              <div className="bg-slate-900 border-t border-slate-700 p-3 md:p-4 flex items-center justify-center gap-2 flex-wrap">
+                <button
+                  onClick={() => setZoom(Math.max(1, zoom - 0.5))}
+                  disabled={zoom <= 1}
+                  className="bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white p-2 rounded text-xs md:text-sm"
+                >
+                  <ZoomOut size={16} />
+                </button>
+                
+                <span className="text-slate-300 font-bold text-xs md:text-sm">
+                  {Math.round(zoom * 100)}%
+                </span>
+                
+                <button
+                  onClick={() => setZoom(Math.min(3, zoom + 0.5))}
+                  disabled={zoom >= 3}
+                  className="bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white p-2 rounded text-xs md:text-sm"
+                >
+                  <ZoomIn size={16} />
+                </button>
+
+                <div className="flex-1"></div>
+
+                <button
+                  onClick={() => setSelectedImage(null)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-3 md:px-4 py-2 rounded font-bold text-xs md:text-sm"
+                >
+                  ✅ Schließen
+                </button>
+              </div>
+            </div>
           </div>
-        </>
-      )}
+        )}
+
+        {/* Add Player Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40 p-4">
+            <div className="bg-slate-800 rounded-lg p-6 max-w-md w-full border border-slate-700 max-h-[90vh] overflow-y-auto">
+              <h3 className="text-xl md:text-2xl font-bold mb-4">Neues Mitglied</h3>
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Name"
+                  value={newPlayer.name}
+                  onChange={(e) =>
+                    setNewPlayer({ ...newPlayer, name: e.target.value })
+                  }
+                  className="w-full bg-slate-900 border border-slate-700 rounded px-4 py-2 text-white focus:border-purple-500 outline-none text-sm"
+                />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={newPlayer.email}
+                  onChange={(e) =>
+                    setNewPlayer({ ...newPlayer, email: e.target.value })
+                  }
+                  className="w-full bg-slate-900 border border-slate-700 rounded px-4 py-2 text-white focus:border-purple-500 outline-none text-sm"
+                />
+                <input
+                  type="text"
+                  placeholder="GGPoker Nickname"
+                  value={newPlayer.ggpokerNickname}
+                  onChange={(e) =>
+                    setNewPlayer({
+                      ...newPlayer,
+                      ggpokerNickname: e.target.value,
+                    })
+                  }
+                  className="w-full bg-slate-900 border border-slate-700 rounded px-4 py-2 text-white focus:border-purple-500 outline-none text-sm"
+                />
+                <input
+                  type="number"
+                  placeholder="Startbankroll"
+                  value={newPlayer.bankroll}
+                  onChange={(e) =>
+                    setNewPlayer({ ...newPlayer, bankroll: e.target.value })
+                  }
+                  className="w-full bg-slate-900 border border-slate-700 rounded px-4 py-2 text-white focus:border-purple-500 outline-none text-sm"
+                />
+              </div>
+              <div className="flex gap-4 mt-6">
+                <button
+                  onClick={handleAddPlayer}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-bold text-sm"
+                >
+                  Hinzufügen
+                </button>
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded font-bold text-sm"
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
