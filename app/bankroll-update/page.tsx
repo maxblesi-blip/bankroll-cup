@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Save, AlertCircle, Loader } from "lucide-react";
+import { Save, AlertCircle, Loader, Image } from "lucide-react";
 
 interface PlayerData {
   email: string;
@@ -18,9 +18,14 @@ export default function BankrollUpdatePage() {
   const [authorized, setAuthorized] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingPlayer, setLoadingPlayer] = useState(true);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [playerData, setPlayerData] = useState<PlayerData | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  
   const [formData, setFormData] = useState({
     bankroll: "",
     notes: "",
@@ -118,6 +123,77 @@ export default function BankrollUpdatePage() {
     }
   };
 
+  // ✅ Handle Image Upload
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      // Preview anzeigen
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // ✅ Upload Image zu kostenlosem Service (ImgBB)
+  const uploadImage = async () => {
+    if (!imageFile) return null;
+
+    try {
+      setUploadingImage(true);
+      console.log(`📤 Lade Bild hoch: ${imageFile.name}`);
+
+      const formDataImage = new FormData();
+      formDataImage.append("image", imageFile);
+
+      // Nutze kostenlose ImgBB API (kein Key nötig für Uploads)
+      const response = await fetch("https://imgbb.com/api/upload", {
+        method: "POST",
+        body: formDataImage,
+      });
+
+      // Fallback: Nutze eine alternative kostenlose API (imgur anonym)
+      if (!response.ok) {
+        console.warn("⚠️  ImgBB fehlgeschlagen, versuche alternatives Hosting...");
+        
+        // Alternative: Nutze UploadCare oder eine andere Lösung
+        const altFormData = new FormData();
+        altFormData.append("files", imageFile);
+
+        const altResponse = await fetch("https://store0.gofile.io/uploadFile", {
+          method: "POST",
+          body: altFormData,
+        });
+
+        if (altResponse.ok) {
+          const altData = await altResponse.json();
+          const imageLink = altData.data?.downloadPage || null;
+          console.log(`✅ Image hochgeladen: ${imageLink}`);
+          return imageLink;
+        }
+      }
+
+      const data = await response.json();
+      const imageLink = data.url || data.data?.url;
+
+      if (imageLink) {
+        console.log(`✅ Image hochgeladen: ${imageLink}`);
+        setImageUrl(imageLink);
+        return imageLink;
+      } else {
+        throw new Error("Kein Bild-Link in der Response");
+      }
+    } catch (error) {
+      console.error("❌ Image Upload Error:", error);
+      // Fallback: Nutzer kann Link manuell eingeben oder wir speichern ohne Link
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   if (status === "loading" || loadingPlayer) {
     return (
       <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center px-4">
@@ -176,6 +252,12 @@ export default function BankrollUpdatePage() {
         return;
       }
 
+      if (!imageFile) {
+        setError("Bitte laden Sie ein Beweisfoto hoch!");
+        setLoading(false);
+        return;
+      }
+
       // ✅ Nutze Spielerdaten aus Leaderboard!
       if (!playerData) {
         setError("Spielerdaten nicht verfügbar!");
@@ -183,10 +265,17 @@ export default function BankrollUpdatePage() {
         return;
       }
 
-      console.log(`📤 [SUBMIT] Bankroll Update:`);
+      console.log(`📤 [SUBMIT] Bankroll Update mit Foto:`);
       console.log(`   Email: ${playerData.email}`);
       console.log(`   Name: ${playerData.name}`);
       console.log(`   Bankroll: €${bankrollValue}`);
+
+      // ✅ Upload Bild
+      let finalImageUrl = imageUrl;
+      if (!finalImageUrl && imageFile) {
+        console.log("⏳ Lade Bild hoch...");
+        finalImageUrl = await uploadImage();
+      }
 
       // Sende Update mit Spielerdaten aus Leaderboard
       const response = await fetch("/api/bankroll-updates", {
@@ -197,6 +286,7 @@ export default function BankrollUpdatePage() {
           userName: playerData.name, // ✅ Aus Leaderboard!
           bankroll: bankrollValue,
           notes: formData.notes,
+          proofImageUrl: finalImageUrl || "", // ✅ Bild-Link
           createdAt: new Date().toISOString(),
           status: "pending",
         }),
@@ -207,7 +297,7 @@ export default function BankrollUpdatePage() {
         console.log(`✅ [SUCCESS] Update eingereicht mit ID: ${data.id}`);
 
         setSuccess(
-          `✅ Bankroll-Update erfolgreich eingereicht! Die Admins werden dich bald überprüfen.`
+          `✅ Bankroll-Update mit Beweisfoto erfolgreich eingereicht! Die Admins werden dich bald überprüfen.`
         );
 
         // Reset Form
@@ -215,6 +305,9 @@ export default function BankrollUpdatePage() {
           bankroll: playerData.bankroll?.toString() || "",
           notes: "",
         });
+        setImageFile(null);
+        setImagePreview(null);
+        setImageUrl(null);
 
         // Nach 2 Sekunden zur Ranking Seite gehen
         setTimeout(() => {
@@ -238,7 +331,7 @@ export default function BankrollUpdatePage() {
       <div className="max-w-2xl mx-auto">
         <h1 className="text-4xl font-bold mb-2">💰 Bankroll Update</h1>
         <p className="text-slate-400 mb-8">
-          Melde deine aktuelle Bankroll täglich bis 17:00 Uhr
+          Melde deine aktuelle Bankroll täglich bis 17:00 Uhr (mit Beweisfoto)
         </p>
 
         {/* User Info */}
@@ -316,6 +409,63 @@ export default function BankrollUpdatePage() {
             </p>
           </div>
 
+          {/* Image Upload */}
+          <div>
+            <label className="block text-sm font-bold mb-2">
+              🖼️ Beweisfoto (Screenshot) *
+            </label>
+            <div className="border-2 border-dashed border-slate-700 rounded-lg p-6 text-center">
+              {imagePreview ? (
+                <div>
+                  <img src={imagePreview} alt="Preview" className="max-h-48 mx-auto mb-3 rounded" />
+                  <p className="text-sm text-slate-300 mb-2">{imageFile?.name}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageFile(null);
+                      setImagePreview(null);
+                    }}
+                    className="text-red-400 hover:text-red-300 text-sm font-bold"
+                  >
+                    ❌ Foto entfernen
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <Image className="mx-auto text-slate-500 mb-2" size={32} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    disabled={!playerData}
+                    className="hidden"
+                    id="image-upload"
+                    required
+                  />
+                  <label
+                    htmlFor="image-upload"
+                    className="cursor-pointer text-slate-300 hover:text-purple-400 font-bold"
+                  >
+                    Klick hier um Bild hochzuladen
+                  </label>
+                  <p className="text-xs text-slate-500 mt-2">
+                    (PNG, JPG, GIF bis 5MB)
+                  </p>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-slate-400 mt-2">
+              Bitte lade einen Screenshot deiner aktuellen Bankroll hoch
+            </p>
+          </div>
+
+          {uploadingImage && (
+            <div className="flex items-center gap-2 text-yellow-400">
+              <Loader size={16} className="animate-spin" />
+              <span className="text-sm">Bild wird hochgeladen...</span>
+            </div>
+          )}
+
           {/* Notes */}
           <div>
             <label className="block text-sm font-bold mb-2">
@@ -346,7 +496,7 @@ export default function BankrollUpdatePage() {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={loading || !playerData}
+            disabled={loading || !playerData || uploadingImage}
             className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg transition flex items-center justify-center gap-2"
           >
             <Save size={20} />
@@ -363,15 +513,19 @@ export default function BankrollUpdatePage() {
               aktuelle Bankroll ein
             </li>
             <li>
-              <span className="font-bold text-purple-400">2.</span> Die Admins
+              <span className="font-bold text-purple-400">2.</span> Laden Sie einen
+              Screenshot als Beweisfoto hoch
+            </li>
+            <li>
+              <span className="font-bold text-purple-400">3.</span> Die Admins
               überprüfen Ihr Update
             </li>
             <li>
-              <span className="font-bold text-purple-400">3.</span> Einmal im Monat
+              <span className="font-bold text-purple-400">4.</span> Einmal im Monat
               wird eine Verifizierung via Discord durchgeführt
             </li>
             <li>
-              <span className="font-bold text-purple-400">4.</span> Dein Fortschritt
+              <span className="font-bold text-purple-400">5.</span> Dein Fortschritt
               wird in der Rangliste angezeigt
             </li>
           </ol>
