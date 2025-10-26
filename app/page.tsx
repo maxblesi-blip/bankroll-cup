@@ -16,7 +16,7 @@ export default function Home() {
             MP Bankroll Cup
           </h1>
           <p className="text-2xl text-slate-300 mb-8">
-            1. Auflage - Das größte Bankroll Challenge
+            1. Auflage
           </p>
         </div>
 

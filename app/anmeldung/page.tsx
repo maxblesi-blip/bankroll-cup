@@ -368,7 +368,7 @@ export default function AnmeldungPage() {
   if (!session) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-2">🃏 MP Bankroll Cup</h1>
+        <h1 className="text-4xl font-bold mb-2">MP Bankroll Cup</h1>
         <p className="text-slate-400 mb-8">Melde dich jetzt an!</p>
 
         <div className="bg-gradient-to-r from-blue-900 to-cyan-900 border border-blue-700 rounded-lg p-8 mb-8">
