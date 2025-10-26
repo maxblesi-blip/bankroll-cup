@@ -413,19 +413,24 @@ export default function BankrollUpdatePage() {
               </p>
             </div>
 
-            {/* Image Upload */}
+            {/* Image Upload - ✅ GESAMTER BEREICH KLICKBAR */}
             <div>
               <label className="block text-sm font-bold mb-2">
                 🖼️ Beweisfoto (Screenshot) *
               </label>
-              <div className="border-2 border-dashed border-slate-700 rounded-lg p-6 text-center">
+              
+              <label
+                htmlFor="image-upload"
+                className="block border-2 border-dashed border-slate-700 rounded-lg p-6 text-center cursor-pointer hover:border-purple-400 hover:bg-slate-700/50 transition"
+              >
                 {imagePreview ? (
                   <div>
                     <img src={imagePreview} alt="Preview" className="max-h-48 mx-auto mb-3 rounded" />
                     <p className="text-sm text-slate-300 mb-2">{imageFile?.name}</p>
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
                         setImageFile(null);
                         setImagePreview(null);
                       }}
@@ -437,27 +442,27 @@ export default function BankrollUpdatePage() {
                 ) : (
                   <div>
                     <Image className="mx-auto text-slate-500 mb-2" size={32} />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      disabled={!playerData}
-                      className="hidden"
-                      id="image-upload"
-                      required
-                    />
-                    <label
-                      htmlFor="image-upload"
-                      className="cursor-pointer text-slate-300 hover:text-purple-400 font-bold"
-                    >
+                    <p className="text-slate-300 font-bold">
                       Klick hier um Bild hochzuladen
-                    </label>
+                    </p>
                     <p className="text-xs text-slate-500 mt-2">
                       (PNG, JPG, GIF bis 5MB)
                     </p>
                   </div>
                 )}
-              </div>
+
+                {/* Hidden File Input */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  disabled={!playerData}
+                  className="hidden"
+                  id="image-upload"
+                  required
+                />
+              </label>
+
               <p className="text-xs text-slate-400 mt-2">
                 ☁️ Das Bild wird zu Google Drive hochgeladen
               </p>

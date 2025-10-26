@@ -15,6 +15,7 @@ import {
   Twitch,
   Link as LinkIcon,
   AlertCircle,
+  ZoomIn,
 } from 'lucide-react';
 
 interface BankrollUpdate {
@@ -89,6 +90,9 @@ export default function AdminPanel() {
   const [bankrollFilter, setBankrollFilter] = useState<
     'pending' | 'approved' | 'rejected'
   >('pending');
+  
+  // ✅ NEU: Modal für Foto-Vergrößerung
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -421,6 +425,32 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 p-8">
       <h1 className="text-4xl font-bold mb-8">👥 Dashboard</h1>
+
+      {/* ✅ NEU: Image Modal */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div
+            className="relative max-w-2xl max-h-[80vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={selectedImage}
+              alt="Vergrößert"
+              className="w-full h-full object-contain rounded-lg"
+            />
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full transition"
+              title="Schließen"
+            >
+              <X size={24} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* TAB NAVIGATION */}
       <div className="flex gap-4 mb-8 border-b border-slate-700">
@@ -1028,14 +1058,14 @@ export default function AdminPanel() {
                       </td>
                       <td className="px-6 py-4 text-sm">
                         {update.proofImageUrl ? (
-                          <a
-                            href={update.proofImageUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 font-bold underline"
+                          <button
+                            onClick={() => setSelectedImage(update.proofImageUrl!)}
+                            className="text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 hover:underline"
+                            title="Klick zum Vergrößern"
                           >
-                            🖼️ Link
-                          </a>
+                            <ZoomIn size={16} />
+                            🖼️ Foto
+                          </button>
                         ) : (
                           <span className="text-slate-600">-</span>
                         )}
