@@ -10,7 +10,6 @@ import {
   Trash2,
   Plus,
   Check,
-  ChevronDown,
   Mail,
   User,
   Twitch,
