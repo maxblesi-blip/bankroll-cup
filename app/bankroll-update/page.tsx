@@ -292,7 +292,8 @@ const response = await fetch("https://api.imgbb.com/1/upload?key=4bf7f6262112183
 
   if (status === "loading" || loadingPlayer) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center px-4">
+        <div className="flex flex-col items-center gap-4">
           <Loader size={32} className="animate-spin text-purple-400" />
           <p className="text-slate-300">Wird geladen...</p>
         </div>
