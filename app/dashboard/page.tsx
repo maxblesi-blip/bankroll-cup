@@ -346,29 +346,52 @@ const [zoom, setZoom] = useState(1);
     }
   };
 
-  const handleApproveBankroll = async (bankrollId: string) => {
-    try {
-      const response = await fetch(`/api/bankroll-updates/${bankrollId}`, {
+  const handleApproveBankroll = async (updateId: string) => {
+  try {
+    // Finde das Update
+    const update = bankrollUpdates.find((u) => u.id === updateId);
+    if (!update) {
+      console.error("Update nicht gefunden");
+      return;
+    }
+
+    // 1️⃣ Genehmige das Update
+    const response = await fetch('/api/bankroll-updates', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: updateId, status: 'approved' }),
+    });
+
+    if (response.ok) {
+      // 2️⃣ Aktualisiere auch die Bankroll im Leaderboard
+      console.log(`📊 [APPROVE] Aktualisiere Leaderboard Bankroll für: ${update.userName}`);
+      
+      await fetch('/api/leaderboard', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: 'approved',
-          approvedBy: session?.user?.name || 'Admin',
+          email: update.userId,
+          name: update.userName,
+          bankroll: update.bankroll,
         }),
       });
 
-      if (response.ok) {
-        setBankrollUpdates(
-          bankrollUpdates.map((u) =>
-            u.id === bankrollId ? { ...u, status: 'approved' } : u
-          )
-        );
-        alert('✅ Bankroll Update genehmigt!');
-      }
-    } catch (error) {
-      alert('❌ Fehler beim Genehmigen!');
+      console.log(`✅ [APPROVE] Bankroll im Leaderboard aktualisiert: €${update.bankroll}`);
+
+      // Update UI
+      setBankrollUpdates(
+        bankrollUpdates.map((u) =>
+          u.id === updateId ? { ...u, status: 'approved' as const } : u
+        )
+      );
+
+      // Lade Leaderboard neu
+      loadData();
     }
-  };
+  } catch (error) {
+    console.error('Error approving bankroll:', error);
+  }
+};
 
   const handleRejectBankroll = async (bankrollId: string) => {
     try {
