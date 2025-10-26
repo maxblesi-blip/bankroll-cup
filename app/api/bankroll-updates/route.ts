@@ -1,9 +1,7 @@
-// app/api/bankroll-updates/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID || "1i5nEi_FP0a6zv4jOD6oGIlSudc8doo4LqlxJAL7DV58";
-const SHEET_NAME = "Bankroll-Updates";
 
 async function getAuthClient() {
   try {
@@ -14,130 +12,265 @@ async function getAuthClient() {
     });
   } catch (error) {
     console.error("❌ Auth Error:", error);
-    return null;
-  }
-}
-
-export async function GET() {
-  try {
-    console.log("📊 GET: Lade alle Bankroll-Updates...");
-
-    const auth = await getAuthClient();
-    if (!auth) {
-      console.error("❌ Auth fehlgeschlagen");
-      return NextResponse.json({ error: "Auth failed" }, { status: 500 });
-    }
-
-    const sheets = google.sheets("v4");
-    const response = await sheets.spreadsheets.values.get({
-      auth,
-      spreadsheetId: SHEET_ID,
-      range: `${SHEET_NAME}!A2:H1000`,
-    });
-
-    const rows = response.data.values || [];
-    console.log(`✅ ${rows.length} Einträge geladen`);
-
-    const updates = rows
-      .filter((row: string[]) => row[0]) // Nur mit ID
-      .map((row: string[]) => ({
-        id: row[0] || "",
-        userEmail: row[1] || "", // B: Email
-        userName: row[2] || "", // C: UserName
-        bankroll: parseFloat(row[3]) || 0,
-        notes: row[4] || "",
-        createdAt: row[5] || "",
-        status: row[6] || "pending",
-        approvedBy: row[7] || "",
-      }));
-
-    return NextResponse.json(updates);
-  } catch (error) {
-    console.error("❌ GET Error:", error);
-    return NextResponse.json(
-      { error: "Error fetching bankroll updates" },
-      { status: 500 }
-    );
+    throw error;
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const update = await request.json();
+    console.log("═══════════════════════════════════════════");
+    console.log("💾 [BANKROLL-UPDATE] POST Request");
+    console.log("═══════════════════════════════════════════");
 
-    console.log(`\n📝 POST: Neuer Bankroll-Update`);
-    console.log(`   Spieler: ${update.userName}`);
-    console.log(`   Email: ${update.userEmail}`);
-    console.log(`   Bankroll: €${update.bankroll}`);
+    const body = await request.json();
+    console.log("📥 Received data:");
+    console.log(`   • userId: ${body.userId}`);
+    console.log(`   • userName: ${body.userName}`);
+    console.log(`   • bankroll: ${body.bankroll}`);
+    console.log(`   • status: ${body.status}`);
+    console.log(`   • proofImageUrl: ${body.proofImageUrl?.substring(0, 50)}...`);
 
-    // Validierung - nutze ECHTE EMAIL, nicht Discord ID!
-    if (
-      !update.userEmail ||
-      !update.userName ||
-      update.bankroll === undefined
-    ) {
-      console.error("❌ Fehlende erforderliche Felder");
-      console.error(`   userEmail: ${update.userEmail}`);
-      console.error(`   userName: ${update.userName}`);
-      console.error(`   bankroll: ${update.bankroll}`);
+    // ✅ Validate
+    if (!body.userId || !body.userName || body.bankroll === undefined) {
+      console.error("❌ Missing required fields");
       return NextResponse.json(
-        { error: "Email, UserName und Bankroll sind erforderlich" },
+        { error: "Missing required fields: userId, userName, bankroll" },
+        { status: 400 }
+      );
+    }
+
+    // ✅ Get Auth
+    console.log("🔐 [AUTH] Authenticating with Google Sheets...");
+    const auth = await getAuthClient();
+    const sheets = google.sheets("v4");
+
+    // ✅ Create entry
+    const timestamp = new Date().toISOString();
+    const values = [
+      [
+        body.userId, // A: userId
+        body.userName, // B: userName
+        body.bankroll, // C: bankroll
+        body.notes || "", // D: notes
+        body.proofImageUrl || "", // E: proofImageUrl
+        body.status || "pending", // F: status
+        timestamp, // G: createdAt
+        "", // H: approvedBy
+        "", // I: approvedAt
+      ],
+    ];
+
+    console.log("📝 [APPEND] Adding row to Bankroll-Updates sheet...");
+
+    // ✅ Append to Sheet
+    const response = await sheets.spreadsheets.values.append({
+      auth,
+      spreadsheetId: SHEET_ID,
+      range: "'Bankroll-Updates'!A:I",
+      valueInputOption: "RAW",
+      requestBody: {
+        values: values,
+      },
+    });
+
+    console.log("✅ [APPEND] Row added successfully!");
+    console.log(`   • Updates: ${response.data.updates?.updatedRows}`);
+    console.log(`   • Range: ${response.data.updates?.updatedRange}`);
+
+    console.log("═══════════════════════════════════════════");
+    console.log("✅ [SUCCESS] Bankroll update saved!");
+    console.log("═══════════════════════════════════════════");
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Bankroll update saved successfully",
+        updatedRows: response.data.updates?.updatedRows,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("═══════════════════════════════════════════");
+    console.error("❌ [ERROR] Failed to save bankroll update");
+    console.error(`   • ${String(error)}`);
+    console.error("═══════════════════════════════════════════");
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: String(error),
+        message: "Failed to save bankroll update",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET() {
+  try {
+    console.log("📊 [BANKROLL-UPDATES] GET Request");
+
+    // ✅ Get Auth
+    const auth = await getAuthClient();
+    const sheets = google.sheets("v4");
+
+    // ✅ Get data from Sheet
+    const response = await sheets.spreadsheets.values.get({
+      auth,
+      spreadsheetId: SHEET_ID,
+      range: "'Bankroll-Updates'!A:I",
+    });
+
+    const rows = response.data.values || [];
+    console.log(`✅ Retrieved ${rows.length} rows from Bankroll-Updates`);
+
+    // ✅ Convert to objects (skip header row)
+    const updates = rows.slice(1).map((row: any[]) => ({
+      userId: row[0] || "",
+      userName: row[1] || "",
+      bankroll: row[2] ? parseFloat(row[2]) : 0,
+      notes: row[3] || "",
+      proofImageUrl: row[4] || "",
+      status: row[5] || "pending",
+      createdAt: row[6] || "",
+      approvedBy: row[7] || "",
+      approvedAt: row[8] || "",
+    }));
+
+    return NextResponse.json(updates, { status: 200 });
+  } catch (error) {
+    console.error("❌ GET Error:", error);
+    return NextResponse.json(
+      { error: String(error) },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    console.log("✏️ [BANKROLL-UPDATE] PUT Request");
+
+    const body = await request.json();
+    const { userId, ...updateData } = body;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "userId required" },
         { status: 400 }
       );
     }
 
     const auth = await getAuthClient();
-    if (!auth) {
-      console.error("❌ Google Auth fehlgeschlagen");
-      return NextResponse.json({ error: "Auth failed" }, { status: 500 });
-    }
-
     const sheets = google.sheets("v4");
 
-    // Generiere eindeutige ID
-    const newId =
-      Date.now().toString() + Math.random().toString(36).substr(2, 9);
-
-    // ✅ STRUKTUR: A=ID, B=Email, C=UserName, D=Bankroll, E=Notes, F=CreatedAt, G=Status, H=ApprovedBy
-    const newRow = [
-      newId, // A: ID
-      update.userEmail, // B: Email (ECHTE EMAIL!)
-      update.userName, // C: UserName
-      update.bankroll, // D: Bankroll
-      update.notes || "", // E: Notes
-      update.createdAt || new Date().toISOString().split("T")[0], // F: CreatedAt
-      update.status || "pending", // G: Status
-      update.approvedBy || "", // H: ApprovedBy
-    ];
-
-    console.log(`📝 Speichere Reihe:`);
-    console.log(`   [${newRow.join(", ")}]`);
-
-    await sheets.spreadsheets.values.append({
+    // ✅ Find row by userId
+    const response = await sheets.spreadsheets.values.get({
       auth,
       spreadsheetId: SHEET_ID,
-      range: `${SHEET_NAME}!A2:H`,
-      valueInputOption: "USER_ENTERED",
-      requestBody: { values: [newRow] },
+      range: "'Bankroll-Updates'!A:I",
     });
 
-    console.log(`✅ Bankroll-Update gespeichert mit ID: ${newId}`);
-    console.log(
-      `   Spieler: ${update.userName}`
-    );
-    console.log(`   Email: ${update.userEmail}`);
-    console.log(`   Bankroll: €${update.bankroll}\n`);
+    const rows = response.data.values || [];
+    const rowIndex = rows.findIndex((row: any[]) => row[0] === userId) + 1;
+
+    if (rowIndex === 0) {
+      return NextResponse.json(
+        { error: "Bankroll update not found" },
+        { status: 404 }
+      );
+    }
+
+    // ✅ Update row
+    const updateResponse = await sheets.spreadsheets.values.update({
+      auth,
+      spreadsheetId: SHEET_ID,
+      range: `'Bankroll-Updates'!A${rowIndex}:I${rowIndex}`,
+      valueInputOption: "RAW",
+      requestBody: {
+        values: [
+          [
+            userId,
+            updateData.userName || rows[rowIndex - 1][1],
+            updateData.bankroll ?? rows[rowIndex - 1][2],
+            updateData.notes || rows[rowIndex - 1][3],
+            updateData.proofImageUrl || rows[rowIndex - 1][4],
+            updateData.status || rows[rowIndex - 1][5],
+            rows[rowIndex - 1][6],
+            updateData.approvedBy || rows[rowIndex - 1][7],
+            updateData.approvedAt || rows[rowIndex - 1][8],
+          ],
+        ],
+      },
+    });
+
+    console.log("✅ Bankroll update updated");
 
     return NextResponse.json(
-      {
-        success: true,
-        id: newId,
-        message: `Bankroll-Update für ${update.userName} gespeichert!`,
-      },
-      { status: 201 }
+      { success: true, message: "Updated successfully" },
+      { status: 200 }
     );
   } catch (error) {
-    console.error("❌ POST Error:", error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    console.error("❌ PUT Error:", error);
+    return NextResponse.json(
+      { error: String(error) },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    console.log("🗑️ [BANKROLL-UPDATE] DELETE Request");
+
+    const body = await request.json();
+    const { userId } = body;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "userId required" },
+        { status: 400 }
+      );
+    }
+
+    const auth = await getAuthClient();
+    const sheets = google.sheets("v4");
+
+    // ✅ Find and delete row
+    const response = await sheets.spreadsheets.values.get({
+      auth,
+      spreadsheetId: SHEET_ID,
+      range: "'Bankroll-Updates'!A:I",
+    });
+
+    const rows = response.data.values || [];
+    const rowIndex = rows.findIndex((row: any[]) => row[0] === userId) + 1;
+
+    if (rowIndex === 0) {
+      return NextResponse.json(
+        { error: "Bankroll update not found" },
+        { status: 404 }
+      );
+    }
+
+    // ✅ Clear row (Google Sheets doesn't have true delete, we clear)
+    await sheets.spreadsheets.values.clear({
+      auth,
+      spreadsheetId: SHEET_ID,
+      range: `'Bankroll-Updates'!A${rowIndex}:I${rowIndex}`,
+    });
+
+    console.log("✅ Bankroll update deleted");
+
+    return NextResponse.json(
+      { success: true, message: "Deleted successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("❌ DELETE Error:", error);
+    return NextResponse.json(
+      { error: String(error) },
+      { status: 500 }
+    );
   }
 }
