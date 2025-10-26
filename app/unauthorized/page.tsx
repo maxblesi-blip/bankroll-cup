@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, Trophy, Users, TrendingUp, Zap, Calendar } from "lucide-react";
+import { ChevronRight, Trophy, Users, TrendingUp, Zap } from "lucide-react";
 
 export default function UnauthorizedPage() {
   return (
