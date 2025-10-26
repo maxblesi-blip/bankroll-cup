@@ -403,7 +403,8 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-slate-900 text-slate-100 p-3 md:p-8">
+      <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl md:text-4xl font-bold mb-6">🎛️ Admin Panel</h1>
 
         {/* TABS - Responsive */}
