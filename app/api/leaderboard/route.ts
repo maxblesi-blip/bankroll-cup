@@ -261,23 +261,32 @@ export async function PUT(request: NextRequest) {
     const rows = response.data.values || [];
     console.log(`📊 Gefunden ${rows.length} Reihen im Leaderboard`);
 
-    // ✅ Suche nach Email (Spalte C, Index 2)
-    let rowIndex = -1;
+    // ✅ PRIMÄR: Suche nach Discord ID (Spalte J, Index 9)
+let rowIndex = -1;
 
-    if (email) {
-      rowIndex = rows.findIndex((row: string[]) => {
-        const rowEmail = row[2]?.toString().toLowerCase().trim();
-        const searchEmail = email.toLowerCase().trim();
-        return rowEmail === searchEmail;
-      });
-      console.log(`   Suche nach Email: ${rowIndex !== -1 ? `Gefunden (Reihe ${rowIndex})` : "Nicht gefunden"}`);
-    }
+if (discordId) {
+  rowIndex = rows.findIndex((row: string[]) => {
+    const rowDiscordId = row[9]?.toString().trim();
+    return rowDiscordId === discordId;
+  });
+  console.log(`   Suche nach Discord ID: ${rowIndex !== -1 ? `Gefunden (Reihe ${rowIndex})` : "Nicht gefunden"}`);
+}
 
-    // Fallback: Suche nach ID
-    if (rowIndex === -1 && id) {
-      rowIndex = rows.findIndex((row: string[]) => row[0] === id);
-      console.log(`   Fallback ID: ${rowIndex !== -1 ? `Gefunden (Reihe ${rowIndex})` : "Nicht gefunden"}`);
-    }
+// Fallback: Suche nach Email (für ältere Einträge)
+if (rowIndex === -1 && email) {
+  rowIndex = rows.findIndex((row: string[]) => {
+    const rowEmail = row[2]?.toString().toLowerCase().trim();
+    const searchEmail = email.toLowerCase().trim();
+    return rowEmail === searchEmail;
+  });
+  console.log(`   Fallback Email: ${rowIndex !== -1 ? `Gefunden (Reihe ${rowIndex})` : "Nicht gefunden"}`);
+}
+
+// Final Fallback: Suche nach ID
+if (rowIndex === -1 && id) {
+  rowIndex = rows.findIndex((row: string[]) => row[0] === id);
+  console.log(`   Fallback ID: ${rowIndex !== -1 ? `Gefunden (Reihe ${rowIndex})` : "Nicht gefunden"}`);
+}
 
     const lastUpdate = new Date().toISOString().split("T")[0];
 
@@ -391,31 +400,32 @@ export async function DELETE(request: NextRequest) {
     const rows = response.data.values || [];
     console.log(`📊 Gefunden ${rows.length} Reihen im Leaderboard`);
 
-    // ✅ Suche nach Email (Spalte C, Index 2)
-    let rowIndex = -1;
+    // ✅ PRIMÄR: Suche nach Discord ID (Spalte J, Index 9)
+let rowIndex = -1;
 
-    if (email) {
-      rowIndex = rows.findIndex((row: string[]) => {
-        const rowEmail = row[2]?.toString().toLowerCase().trim();
-        const searchEmail = email.toLowerCase().trim();
-        return rowEmail === searchEmail;
-      });
-      console.log(`   Gefunden nach Email: ${rowIndex !== -1 ? "Ja" : "Nein"}`);
-    }
+if (discordId) {
+  rowIndex = rows.findIndex((row: string[]) => {
+    const rowDiscordId = row[9]?.toString().trim();
+    return rowDiscordId === discordId;
+  });
+  console.log(`   Suche nach Discord ID: ${rowIndex !== -1 ? "Ja" : "Nein"}`);
+}
 
-    // Fallback: Suche nach ID
-    if (rowIndex === -1 && id) {
-      rowIndex = rows.findIndex((row: string[]) => row[0] === id);
-      console.log(`   Fallback: Gefunden nach ID: ${rowIndex !== -1 ? "Ja" : "Nein"}`);
-    }
+// Fallback: Suche nach Email
+if (rowIndex === -1 && email) {
+  rowIndex = rows.findIndex((row: string[]) => {
+    const rowEmail = row[2]?.toString().toLowerCase().trim();
+    const searchEmail = email.toLowerCase().trim();
+    return rowEmail === searchEmail;
+  });
+  console.log(`   Fallback Email: ${rowIndex !== -1 ? "Ja" : "Nein"}`);
+}
 
-    if (rowIndex === -1) {
-      console.error(`❌ Spieler nicht gefunden (Email: ${email}, ID: ${id})`);
-      return NextResponse.json(
-        { error: "Player not found" },
-        { status: 404 }
-      );
-    }
+// Final Fallback: Suche nach ID
+if (rowIndex === -1 && id) {
+  rowIndex = rows.findIndex((row: string[]) => row[0] === id);
+  console.log(`   Fallback ID: ${rowIndex !== -1 ? "Ja" : "Nein"}`);
+}
 
     console.log(`   ✅ Gefunden bei Reihe ${rowIndex + 2}`);
 
