@@ -396,8 +396,8 @@ export default function AdminPanel() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4">
-        <p>Wird geladen...</p>
+      <div className="max-w-7xl mx-auto px-4 py-8 flex items-center justify-center min-h-96">
+        <p className="text-slate-300">Wird geladen...</p>
       </div>
     );
   }
@@ -419,8 +419,8 @@ export default function AdminPanel() {
               }`}
             >
               {t === 'members' && '👥 Mitglieder'}
-              {t === 'registrations' && '📝 Anmeldungen'}
-              {t === 'bankroll' && '💰 Bankroll'}
+              {t === 'registrations' && `📝 Anmeldungen (${registrations.filter((r) => r.status === 'pending').length})`}
+              {t === 'bankroll' && `💰 Bankroll (${bankrollUpdates.filter((u) => u.status === 'pending').length})`}
             </button>
           ))}
         </div>
