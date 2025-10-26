@@ -21,22 +21,25 @@ export default function Navigation() {
     }
 
     const checkLeaderboard = async () => {
-      try {
-        const res = await fetch("/api/leaderboard");
-        const data = await res.json();
-        
-        // Prüfe ob User-Email im Leaderboard ist
-        const found = data.players?.some(
-          (p: any) => p.email?.toLowerCase() === user.email?.toLowerCase()
-        );
-        
-        setIsInLeaderboard(!!found);
-      } catch (error) {
-        console.error("Fehler beim Laden Leaderboard:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  try {
+    const res = await fetch("/api/leaderboard");
+    const data = await res.json();
+    
+    // ✅ PRIMÄR: Prüfe Discord ID
+    // Fallback: Prüfe Email (für ältere Einträge)
+    const found = data.players?.some(
+      (p: any) => 
+        (user.discordId && p.discordId === user.discordId) ||
+        (p.email?.toLowerCase() === user.email?.toLowerCase())
+    );
+    
+    setIsInLeaderboard(!!found);
+  } catch (error) {
+    console.error("Fehler beim Laden Leaderboard:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
     checkLeaderboard();
   }, [user?.email]);
