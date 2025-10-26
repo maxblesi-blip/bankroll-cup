@@ -79,36 +79,36 @@ export default function BankrollUpdatePage() {
   }, [successCountdown, success, router]);
 
   const loadPlayerData = async () => {
-  try {
-    setLoadingPlayer(true);
-    const user = session?.user as any;
-    const userDiscordId = user?.discordId;
-    const userEmail = user?.email;
+    try {
+      setLoadingPlayer(true);
+      const user = session?.user as any;
+      const userDiscordId = user?.discordId;
+      const userEmail = user?.email;
 
-    if (!userDiscordId && !userEmail) {
-      setError("Discord ID und Email konnten nicht ermittelt werden!");
-      setLoadingPlayer(false);
-      return;
-    }
+      if (!userDiscordId && !userEmail) {
+        setError("Discord ID und Email konnten nicht ermittelt werden!");
+        setLoadingPlayer(false);
+        return;
+      }
 
-    console.log(`🔍 [PLAYER] Lade Spielerdaten für Discord ID: ${userDiscordId} oder Email: ${userEmail}`);
+      console.log(`🔍 [PLAYER] Lade Spielerdaten für Discord ID: ${userDiscordId} oder Email: ${userEmail}`);
 
-    // Lade Spieler aus Leaderboard
-    const response = await fetch("/api/leaderboard");
-    const leaderboardData = await response.json();
+      // Lade Spieler aus Leaderboard
+      const response = await fetch("/api/leaderboard");
+      const leaderboardData = await response.json();
 
-    if (!leaderboardData.players || !Array.isArray(leaderboardData.players)) {
-      console.warn("⚠️  Keine Spielerdaten im Leaderboard");
-      setLoadingPlayer(false);
-      return;
-    }
+      if (!leaderboardData.players || !Array.isArray(leaderboardData.players)) {
+        console.warn("⚠️  Keine Spielerdaten im Leaderboard");
+        setLoadingPlayer(false);
+        return;
+      }
 
-    // PRIMÄR: Suche nach Discord ID, Fallback: Email
-    const player = leaderboardData.players.find(
-      (p: any) => 
-        (userDiscordId && p.discordId === userDiscordId) ||
-        (p.email?.toLowerCase() === userEmail?.toLowerCase())
-    );
+      // PRIMÄR: Suche nach Discord ID, Fallback: Email
+      const player = leaderboardData.players.find(
+        (p: any) => 
+          (userDiscordId && p.discordId === userDiscordId) ||
+          (p.email?.toLowerCase() === userEmail?.toLowerCase())
+      );
 
       if (player) {
         console.log(`✅ [PLAYER] Spielerdaten gefunden:`);
@@ -171,10 +171,8 @@ export default function BankrollUpdatePage() {
       const formDataImage = new FormData();
       formDataImage.append("image", imageFile);
 
-      // ✅ ImgBB API - kostenlos, kein Key nötig
       console.log(`📤 Sende zu ImgBB API`);
-      // ✅ NEU - mit API Key
-const response = await fetch("https://api.imgbb.com/1/upload?key=4bf7f62621121839c578e53019058431&expiration=31536000", {
+      const response = await fetch("https://api.imgbb.com/1/upload?key=4bf7f62621121839c578e53019058431&expiration=31536000", {
         method: "POST",
         body: formDataImage,
       });
@@ -314,8 +312,8 @@ const response = await fetch("https://api.imgbb.com/1/upload?key=4bf7f6262112183
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 py-12 px-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-2xl">
         <h1 className="text-4xl font-bold mb-2">💰 Bankroll Update</h1>
         <p className="text-slate-400 mb-8">
           Melde deine aktuelle Bankroll täglich bis 17:00 Uhr (mit Beweisfoto)
@@ -408,7 +406,7 @@ const response = await fetch("https://api.imgbb.com/1/upload?key=4bf7f6262112183
               </p>
             </div>
 
-            {/* Image Upload - ✅ GESAMTER BEREICH KLICKBAR */}
+            {/* Image Upload */}
             <div>
               <label className="block text-sm font-bold mb-2">
                 🖼️ Beweisfoto (Screenshot) *
@@ -536,5 +534,6 @@ const response = await fetch("https://api.imgbb.com/1/upload?key=4bf7f6262112183
           </ol>
         </div>
       </div>
+    </div>
   );
 }
