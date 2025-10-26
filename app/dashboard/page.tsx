@@ -16,10 +16,11 @@ import {
   ZoomOut,
 } from 'lucide-react';
 
-interface BankrollUpdate {
+iinterface BankrollUpdate {
   id: string;
   userId: string;
   userName: string;
+  discordId?: string;  // ← NEU!
   bankroll: number;
   notes: string;
   proofImageUrl?: string;
@@ -314,26 +315,27 @@ export default function AdminPanel() {
   };
 
   const handleApproveBankroll = async (updateId: string) => {
-    try {
-      const update = bankrollUpdates.find((u) => u.id === updateId);
-      if (!update) return;
+  try {
+    const update = bankrollUpdates.find((u) => u.id === updateId);
+    if (!update) return;
 
-      const response = await fetch('/api/bankroll-updates', {
+    const response = await fetch('/api/bankroll-updates', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: updateId, status: 'approved' }),
+    });
+
+    if (response.ok) {
+      await fetch('/api/leaderboard', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: updateId, status: 'approved' }),
+        body: JSON.stringify({
+          discordId: update.discordId,  // ← NEU! PRIMÄR
+          email: update.userId,
+          name: update.userName,
+          bankroll: update.bankroll,
+        }),
       });
-
-      if (response.ok) {
-        await fetch('/api/leaderboard', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: update.userId,
-            name: update.userName,
-            bankroll: update.bankroll,
-          }),
-        });
 
         setBankrollUpdates(
           bankrollUpdates.map((u) =>
