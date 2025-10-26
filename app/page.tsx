@@ -1,9 +1,58 @@
 "use client";
 
 import Link from "next/link";
-import { Trophy, Users, TrendingUp, Zap } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Trophy, Users, TrendingUp, Zap, Loader } from "lucide-react";
+import { DISCORD_ROLES } from "@/lib/constants";
 
 export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+
+  // ✅ ZUGRIFFS-CHECK - Role basiert
+  useEffect(() => {
+    if (status === "loading") return;
+
+    // Nicht eingeloggt → /unauthorized
+    if (!session?.user) {
+      router.push("/unauthorized");
+      return;
+    }
+
+    // Role checken
+    const user = session.user as any;
+    const userRoles = user.roles || [];
+    const hasRole = userRoles.includes(DISCORD_ROLES.BANKROLL_CUP_PARTICIPANT);
+
+    if (!hasRole) {
+      // Keine Role → /unauthorized
+      router.push("/unauthorized");
+      return;
+    }
+
+    // Alles OK
+    setIsAuthorized(true);
+  }, [session, status, router]);
+
+  // ✅ LOADING STATE - Während Authorization überprüft wird
+  if (isAuthorized === null || status === "loading") {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader size={40} className="animate-spin text-purple-400" />
+          <p className="text-slate-300">Wird überprüft...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900">
       {/* Hero */}
