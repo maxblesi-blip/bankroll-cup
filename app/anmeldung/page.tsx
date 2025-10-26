@@ -23,7 +23,6 @@ export default function AnmeldungPage() {
   
   // ✅ SUCCESS State
   const [successData, setSuccessData] = useState<RegistrationData | null>(null);
-  const [checkingRegistration, setCheckingRegistration] = useState(false);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -102,7 +101,6 @@ export default function AnmeldungPage() {
   // ✅ Prüfe ob Registrierung im Sheet vorhanden ist
   const checkRegistrationStatus = async (userEmail: string) => {
     try {
-      setCheckingRegistration(true);
       console.log(`🔍 Prüfe Registrierung für: ${userEmail}`);
 
       const response = await fetch("/api/leaderboard"); // Oder eine neue API Route
@@ -144,8 +142,6 @@ export default function AnmeldungPage() {
         email: userEmail,
         status: "pending",
       });
-    } finally {
-      setCheckingRegistration(false);
     }
   };
 
