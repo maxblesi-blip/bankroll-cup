@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     entryId, // A: ID
     body.userId, // B: userId
     body.userName, // C: userName
-    body.discordId || "", // D: discordId ← NEU!
+    body.discordId || "", // D: discordId  NEU!
     body.bankroll, // E: bankroll
     body.notes || "", // F: notes
     body.proofImageUrl || "", // G: proofImageUrl
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     const response = await sheets.spreadsheets.values.append({
   auth,
   spreadsheetId: SHEET_ID,
-  range: "'Bankroll-Updates'!A:K",   ← A:K!
+  range: "'Bankroll-Updates'!A:K",    A:K!
   valueInputOption: "RAW",
       requestBody: {
         values: values,
@@ -184,11 +184,11 @@ export async function PUT(request: NextRequest) {
   currentRow[0],
   currentRow[1],
   currentRow[2],
-  currentRow[3],  // ← discordId (wird mitgenommen)
+  currentRow[3],  //  discordId (wird mitgenommen)
   currentRow[4],
   currentRow[5],
   currentRow[6],
-  status,  // ← Hier wird status aktualisiert (war Index 6, jetzt Index 7)
+  status,  //  Hier wird status aktualisiert (war Index 6, jetzt Index 7)
   currentRow[8],
   currentRow[9],
   currentRow[10],
@@ -199,7 +199,7 @@ export async function PUT(request: NextRequest) {
     await sheets.spreadsheets.values.update({
       auth,
       spreadsheetId: SHEET_ID,
-      range: `'Bankroll-Updates'!A${rowIndex}:K${rowIndex}`,  // ← A:K
+      range: `'Bankroll-Updates'!A${rowIndex}:K${rowIndex}`,  //  A:K
       valueInputOption: "RAW",
       requestBody: {
         values: [updatedRow],
@@ -241,7 +241,7 @@ export async function DELETE(request: NextRequest) {
     const response = await sheets.spreadsheets.values.get({
   auth,
   spreadsheetId: SHEET_ID,
-  range: "'Bankroll-Updates'!A:K",  // ← A:K
+  range: "'Bankroll-Updates'!A:K",  //  A:K
 });
 
     const rows = response.data.values || [];
@@ -257,7 +257,7 @@ export async function DELETE(request: NextRequest) {
     await sheets.spreadsheets.values.clear({
       auth,
       spreadsheetId: SHEET_ID,
-      range: `'Bankroll-Updates'!A${rowIndex}:K${rowIndex}`,  // ← A:K
+      range: `'Bankroll-Updates'!A${rowIndex}:K${rowIndex}`,  //  A:K
     });
 
     console.log("✅ Bankroll update deleted");
