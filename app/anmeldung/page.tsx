@@ -513,21 +513,22 @@ export default function AnmeldungPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-bold mb-2">
-            Email Adresse * <span className="text-xs text-slate-400">(von deinem Discord Account)</span>
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            readOnly
-            className="w-full bg-slate-900 border border-green-700 rounded px-4 py-2 text-green-400 outline-none cursor-not-allowed opacity-75"
-            placeholder="Wird automatisch übernommen"
-          />
-          <p className="text-xs text-green-400 mt-1">
-            ✓ Automatisch von deinem Discord Account übernommen
-          </p>
-        </div>
+  <label className="block text-sm font-bold mb-2">
+    Email Adresse *
+  </label>
+  <input
+    type="email"
+    name="email"
+    value={formData.email}
+    onChange={handleChange}
+    className="w-full bg-slate-900 border border-slate-700 rounded px-4 py-2 text-white focus:border-purple-500 outline-none"
+    placeholder="Deine Email Adresse"
+    required
+  />
+  <p className="text-xs text-slate-400 mt-1">
+    Von deinem Discord Account vorausgefüllt - aber du kannst sie ändern
+  </p>
+</div>
 
         <div>
           <label className="block text-sm font-bold mb-2">GGPoker Username *</label>
