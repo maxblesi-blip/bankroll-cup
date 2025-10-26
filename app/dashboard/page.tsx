@@ -1138,14 +1138,11 @@ const [zoom, setZoom] = useState(1);
                       </td>
                     </tr>
                   ))}
-                </tbody>
+               </tbody>
               </table>
-              
-            </div>
-</table>
-            </div>  {/* <- Schließe overflow-x-auto */}
+            </div>  {/* <- Schließe overflow-x-auto div */}
 
-            {/* 🖼️ IMAGE MODAL mit ZOOM - HIER MUSS ES SEIN! */}
+            {/* 🖼️ IMAGE MODAL mit ZOOM */}
             {selectedImage && (
               <div 
                 className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
@@ -1214,10 +1211,10 @@ const [zoom, setZoom] = useState(1);
                     >
                       ✅ Schließen
                     </button>
-                  </div>
-                </div>
-              </div>
-            )}
+                 </div>
+            </div>
+          </div>
+        )}
 
             {filteredBankrollUpdates.length === 0 && (
               <div className="text-center py-12 text-slate-400">
