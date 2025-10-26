@@ -224,7 +224,7 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, email, discordId } = body;  ← HIER ÄNDERN!
+    const { id, email, discordId } = body;
 
     console.log(`\n🗑️ DELETE: Lösche Spieler`);
     console.log(`   Email: ${email}`);
