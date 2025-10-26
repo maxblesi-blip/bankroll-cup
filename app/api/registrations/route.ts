@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
 // ✅ PUT - Update Registrierung (Status ändern)
 export async function PUT(request: NextRequest) {
   try {
-    const { id, status, rejectedBy, rejectedAt, approvedBy, approvedAt } = await request.json();
+    const { id, status, rejectedBy, approvedBy } = await request.json();
 
     console.log(`📝 [PUT] Update Registrierung ${id}: status=${status}`);
 
