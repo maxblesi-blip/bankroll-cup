@@ -6,6 +6,7 @@ import { Clock, CheckCircle, Target, Video, AlertCircle } from "lucide-react";
 export default function RegelnPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      <div>
         {/* Header */}
         <div className="mb-12">
           <h1 className="text-5xl font-bold mb-3">📋 Regeln</h1>
