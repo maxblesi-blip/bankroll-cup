@@ -79,33 +79,36 @@ export default function BankrollUpdatePage() {
   }, [successCountdown, success, router]);
 
   const loadPlayerData = async () => {
-    try {
-      setLoadingPlayer(true);
-      const user = session?.user as any;
-      const userEmail = user?.discordEmail || user?.email;
+  try {
+    setLoadingPlayer(true);
+    const user = session?.user as any;
+    const userDiscordId = user?.discordId;
+    const userEmail = user?.email;
 
-      if (!userEmail) {
-        setError("Email konnte nicht ermittelt werden!");
-        setLoadingPlayer(false);
-        return;
-      }
+    if (!userDiscordId && !userEmail) {
+      setError("Discord ID und Email konnten nicht ermittelt werden!");
+      setLoadingPlayer(false);
+      return;
+    }
 
-      console.log(`🔍 [PLAYER] Lade Spielerdaten für: ${userEmail}`);
+    console.log(`🔍 [PLAYER] Lade Spielerdaten für Discord ID: ${userDiscordId} oder Email: ${userEmail}`);
 
-      // Lade Spieler aus Leaderboard
-      const response = await fetch("/api/leaderboard");
-      const leaderboardData = await response.json();
+    // Lade Spieler aus Leaderboard
+    const response = await fetch("/api/leaderboard");
+    const leaderboardData = await response.json();
 
-      if (!leaderboardData.players || !Array.isArray(leaderboardData.players)) {
-        console.warn("⚠️  Keine Spielerdaten im Leaderboard");
-        setLoadingPlayer(false);
-        return;
-      }
+    if (!leaderboardData.players || !Array.isArray(leaderboardData.players)) {
+      console.warn("⚠️  Keine Spielerdaten im Leaderboard");
+      setLoadingPlayer(false);
+      return;
+    }
 
-      // Suche Spieler mit dieser Email
-      const player = leaderboardData.players.find(
-        (p: any) => p.email?.toLowerCase() === userEmail.toLowerCase()
-      );
+    // PRIMÄR: Suche nach Discord ID, Fallback: Email
+    const player = leaderboardData.players.find(
+      (p: any) => 
+        (userDiscordId && p.discordId === userDiscordId) ||
+        (p.email?.toLowerCase() === userEmail?.toLowerCase())
+    );
 
       if (player) {
         console.log(`✅ [PLAYER] Spielerdaten gefunden:`);
