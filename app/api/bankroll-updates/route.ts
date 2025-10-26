@@ -165,7 +165,7 @@ export async function PUT(request: NextRequest) {
     const response = await sheets.spreadsheets.values.get({
   auth,
   spreadsheetId: SHEET_ID,
-  range: "'Bankroll-Updates'!A:K",  // ← A:K
+  range: "'Bankroll-Updates'!A:K",
 });
 
     const rows = response.data.values || [];
