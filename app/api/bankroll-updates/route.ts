@@ -181,8 +181,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // ✅ Update row
-    const updateResponse = await sheets.spreadsheets.values.update({
+    // ✅ Update row (✅ FIXED: removed unused variable)
+    await sheets.spreadsheets.values.update({
       auth,
       spreadsheetId: SHEET_ID,
       range: `'Bankroll-Updates'!A${rowIndex}:I${rowIndex}`,
