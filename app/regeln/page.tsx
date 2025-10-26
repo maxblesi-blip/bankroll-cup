@@ -1,7 +1,7 @@
 // app/regeln/page.tsx
 "use client";
 
-import { Clock, CheckCircle, Target, Video, AlertCircle } from "lucide-react";
+import { Clock, CheckCircle, Target, Video, } from "lucide-react";
 
 export default function RegelnPage() {
   return (
