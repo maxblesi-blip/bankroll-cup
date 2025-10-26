@@ -170,7 +170,8 @@ export default function BankrollUpdatePage() {
 
       // ✅ ImgBB API - kostenlos, kein Key nötig
       console.log(`📤 Sende zu ImgBB API`);
-      const response = await fetch("https://api.imgbb.com/1/upload?expiration=31536000", {
+      // ✅ NEU - mit API Key
+const response = await fetch("https://api.imgbb.com/1/upload?key=4bf7f62621121839c578e53019058431&expiration=31536000", {
         method: "POST",
         body: formDataImage,
       });
