@@ -16,7 +16,7 @@ import {
   ZoomOut,
 } from 'lucide-react';
 
-iinterface BankrollUpdate {
+interface BankrollUpdate {
   id: string;
   userId: string;
   userName: string;
