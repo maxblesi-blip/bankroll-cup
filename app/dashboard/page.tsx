@@ -18,7 +18,7 @@ interface BankrollUpdate {
   id: string;
   userId: string;
   userName: string;
-  discordId?: string;  // ← NEU!
+  discordId?: string;
   bankroll: number;
   notes: string;
   proofImageUrl?: string;
@@ -126,6 +126,7 @@ export default function AdminPanel() {
           verification: p.verification || '',
           lastUpdated: p.lastUpdated || '',
           discordId: p.discordId || '',
+          discordUsername: p.discordUsername || '',
         }));
         setPlayers(convertedPlayers);
       } else {
@@ -313,27 +314,27 @@ export default function AdminPanel() {
   };
 
   const handleApproveBankroll = async (updateId: string) => {
-  try {
-    const update = bankrollUpdates.find((u) => u.id === updateId);
-    if (!update) return;
+    try {
+      const update = bankrollUpdates.find((u) => u.id === updateId);
+      if (!update) return;
 
-    const response = await fetch('/api/bankroll-updates', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: updateId, status: 'approved' }),
-    });
-
-    if (response.ok) {
-      await fetch('/api/leaderboard', {
+      const response = await fetch('/api/bankroll-updates', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          discordId: update.discordId,  // ← NEU! PRIMÄR
-          email: update.userId,
-          name: update.userName,
-          bankroll: update.bankroll,
-        }),
+        body: JSON.stringify({ id: updateId, status: 'approved' }),
       });
+
+      if (response.ok) {
+        await fetch('/api/leaderboard', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            discordId: update.discordId,
+            email: update.userId,
+            name: update.userName,
+            bankroll: update.bankroll,
+          }),
+        });
 
         setBankrollUpdates(
           bankrollUpdates.map((u) =>
@@ -404,7 +405,7 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 p-3 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-2xl md:text-4xl font-bold mb-6">Dashboard</h1>
+        <h1 className="text-2xl md:text-4xl font-bold mb-6">🎛️ Admin Panel</h1>
 
         {/* TABS - Responsive */}
         <div className="flex gap-1 md:gap-4 mb-6 border-b border-slate-700 pb-4 flex-wrap">
@@ -448,7 +449,7 @@ export default function AdminPanel() {
                       <th className="px-4 py-3 text-left font-bold">Name</th>
                       <th className="px-4 py-3 text-left font-bold">Discord</th>
                       <th className="px-4 py-3 text-left font-bold">GGPoker</th>
-                      <th className="px-4 py-3 text-right font-bold">€</th>
+                      <th className="px-4 py-3 text-right font-bold">Bankroll</th>
                       <th className="px-4 py-3 text-left font-bold">Stream</th>
                       <th className="px-4 py-3 text-center font-bold">Aktionen</th>
                     </tr>
@@ -467,15 +468,8 @@ export default function AdminPanel() {
                               className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-sm"
                             />
                           </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="email"
-                              value={editData.email}
-                              onChange={(e) =>
-                                setEditData({ ...editData, email: e.target.value })
-                              }
-                              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-sm"
-                            />
+                          <td className="px-4 py-3 text-xs text-slate-400">
+                            {editData.discordUsername} / {editData.discordId}
                           </td>
                           <td className="px-4 py-3">
                             <input
@@ -503,6 +497,20 @@ export default function AdminPanel() {
                               className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-sm text-right"
                             />
                           </td>
+                          <td className="px-4 py-3 text-xs">
+                            {editData.livestreamLink ? (
+                              <a 
+                                href={editData.livestreamLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-purple-400 hover:text-purple-300 hover:underline"
+                              >
+                                Link 🔗
+                              </a>
+                            ) : (
+                              <span className="text-slate-600">-</span>
+                            )}
+                          </td>
                           <td className="px-4 py-3">
                             <div className="flex gap-1 justify-center">
                               <button
@@ -526,9 +534,9 @@ export default function AdminPanel() {
                           className="border-b border-slate-700 hover:bg-slate-700/50 transition"
                         >
                           <td className="px-4 py-3 font-bold">{player.name}</td>
-                          <td className="px-4 py-3 text-sm">
-                            <div className="text-slate-300">{player.discordUsername || '-'}</div>
-                            <div className="text-xs text-slate-500">{player.discordId || '-'}</div>
+                          <td className="px-4 py-3 text-xs">
+                            <div className="text-slate-300 font-bold">{player.discordUsername || '-'}</div>
+                            <div className="text-slate-500">{player.discordId || '-'}</div>
                           </td>
                           <td className="px-4 py-3 text-sm text-slate-300">
                             {player.ggpokerNickname}
@@ -549,9 +557,6 @@ export default function AdminPanel() {
                             ) : (
                               <span className="text-slate-600">-</span>
                             )}
-                          </td>
-                          <td className="px-4 py-3">
-                            €{player.bankroll}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex gap-1 justify-center">
