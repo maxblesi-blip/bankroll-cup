@@ -20,29 +20,6 @@ export default function UnauthorizedPage() {
           </div>
         </div>
 
-        {/* Info Cards */}
-        <div className="grid md:grid-cols-2 gap-6 mb-12">
-          {/* Start Info */}
-          <div className="bg-gradient-to-br from-blue-900/40 to-cyan-900/40 border border-blue-700/50 rounded-lg p-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-blue-400 mb-4">🚀 Start</h2>
-              <p className="text-slate-400 text-sm mb-2">Startkapital</p>
-              <p className="text-4xl font-bold text-cyan-400">500 EUR</p>
-              <p className="text-xs text-slate-400 mt-3">Dein Anfangsbudget für den Cup</p>
-            </div>
-          </div>
-
-          {/* Goal Info */}
-          <div className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border border-green-700/50 rounded-lg p-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-green-400 mb-4">🏆 Ziel</h2>
-              <p className="text-slate-400 text-sm mb-2">Zielwert</p>
-              <p className="text-4xl font-bold text-emerald-400">5.000 EUR</p>
-              <p className="text-xs text-slate-400 mt-3">(10x Multiplikator)</p>
-            </div>
-          </div>
-        </div>
-
         {/* Cup Details */}
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 mb-12">
           <h2 className="text-2xl font-bold mb-8 text-center">📋 Rahmenbedingungen</h2>
@@ -82,27 +59,6 @@ export default function UnauthorizedPage() {
               <p className="text-slate-300">1x pro Monat via Discord</p>
               <p className="text-xs text-slate-400 mt-1">Transparenz durch regelmäßige Kontrollen</p>
             </div>
-          </div>
-        </div>
-
-        {/* Features */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
-            <TrendingUp className="w-8 h-8 text-blue-400 mb-3" />
-            <h3 className="font-bold text-lg mb-2">Echtzeit-Rangliste</h3>
-            <p className="text-sm text-slate-400">Verfolge deinen Fortschritt und vergleiche dich mit anderen Spielern</p>
-          </div>
-
-          <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
-            <Users className="w-8 h-8 text-purple-400 mb-3" />
-            <h3 className="font-bold text-lg mb-2">Community</h3>
-            <p className="text-sm text-slate-400">Werde Teil einer motivierten Poker-Community mit gemeinsamen Zielen</p>
-          </div>
-
-          <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
-            <Zap className="w-8 h-8 text-yellow-400 mb-3" />
-            <h3 className="font-bold text-lg mb-2">Verifiziert & Sicher</h3>
-            <p className="text-sm text-slate-400">Monatliche Verifizierungen und Transparenz für Glaubwürdigkeit</p>
           </div>
         </div>
 
@@ -163,30 +119,6 @@ export default function UnauthorizedPage() {
           </div>
         </div>
 
-        {/* Call to Action */}
-        <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-purple-700/50 rounded-lg p-8 text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">🎮 Willst du teilnehmen?</h2>
-
-          <p className="text-slate-300 mb-8 text-lg">
-            Tritt unserem Discord bei für mehr Informationen und um Zugriff auf den Bankroll Cup zu erhalten!
-          </p>
-
-          <a
-            href="https://discord.gg/YbeKE6YEa8"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-lg transition text-lg"
-          >
-            💬 Zum Discord beitreten
-            <ChevronRight size={20} />
-          </a>
-
-          <div className="mt-8 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
-            <p className="text-sm text-slate-400">
-              Du erhältst Zugriff auf alle Features und den Bankroll-Update Editor, sobald du dem Discord beigetreten bist und die erforderliche Rolle erhältst!
-            </p>
-          </div>
-        </div>
 
         {/* Info Box */}
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-8">
