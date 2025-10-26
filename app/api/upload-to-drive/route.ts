@@ -27,26 +27,34 @@ export async function POST(request: NextRequest) {
     const playerName = formData.get("playerName") as string;
     const entryId = formData.get("entryId") as string;
 
-    console.log(`📸 Upload to Google Drive:`);
+    console.log("📸 [UPLOAD] Google Drive Upload Started");
     console.log(`   Discord ID: ${discordId}`);
     console.log(`   Player Name: ${playerName}`);
     console.log(`   Entry ID: ${entryId}`);
+    console.log(`   File: ${file?.name}`);
 
     if (!file || !discordId || !playerName || !entryId) {
+      console.error("❌ Missing parameters");
       return NextResponse.json(
-        { error: "Fehlende Parameter" },
+        { error: "Missing required parameters" },
         { status: 400 }
       );
     }
 
     const auth = await getAuthClient();
     if (!auth) {
-      return NextResponse.json({ error: "Auth failed" }, { status: 500 });
+      console.error("❌ Auth failed");
+      return NextResponse.json(
+        { error: "Authentication failed" },
+        { status: 500 }
+      );
     }
 
     const drive = google.drive("v3");
     const fileName = `[${discordId}] ${playerName} ${entryId}.jpg`;
     const buffer = await file.arrayBuffer();
+
+    console.log(`📤 Uploading file: ${fileName}`);
 
     const uploadResponse = await drive.files.create({
       auth,
@@ -63,8 +71,9 @@ export async function POST(request: NextRequest) {
     });
 
     const fileId = uploadResponse.data.id;
-    console.log(`✅ File hochgeladen: ${fileId}`);
+    console.log(`✅ File uploaded with ID: ${fileId}`);
 
+    // Make file publicly readable
     await drive.permissions.create({
       auth,
       fileId: fileId!,
@@ -74,7 +83,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    console.log(`✅ File permissions updated - public readable`);
+
     const viewLink = `https://drive.google.com/file/d/${fileId}/view`;
+
+    console.log(`✅ Upload successful! Link: ${viewLink}`);
 
     return NextResponse.json(
       {
@@ -82,7 +95,7 @@ export async function POST(request: NextRequest) {
         fileId: fileId,
         fileName: fileName,
         fileLink: viewLink,
-        message: "Datei erfolgreich hochgeladen",
+        message: "File uploaded successfully to Google Drive",
       },
       { status: 200 }
     );
@@ -90,8 +103,9 @@ export async function POST(request: NextRequest) {
     console.error("❌ Upload Error:", error);
     return NextResponse.json(
       {
+        success: false,
         error: String(error),
-        message: "Fehler beim Upload",
+        message: "Upload failed",
       },
       { status: 500 }
     );
