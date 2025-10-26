@@ -104,12 +104,12 @@ export async function POST(request: NextRequest) {
     const response = await sheets.spreadsheets.values.append({
   auth,
   spreadsheetId: SHEET_ID,
-  range: "'Bankroll-Updates'!A:K",    A:K!
+  range: "'Bankroll-Updates'!A:K",
   valueInputOption: "RAW",
-      requestBody: {
-        values: values,
-      },
-    });
+  requestBody: {
+    values: values,
+  },
+});
 
     console.log("✅ [APPEND] Row added successfully!");
     console.log(`   • Updates: ${response.data.updates?.updatedRows}`);
