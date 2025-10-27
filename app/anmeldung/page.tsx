@@ -356,12 +356,7 @@ export default function AnmeldungPage() {
             {checkingMembership ? "Wird überprüft..." : "✅ Ja, ich bin beigetreten - Überprüfen"}
           </button>
           
-          {debugInfo && (
-            <div className="mt-4 p-3 bg-slate-900 rounded border border-slate-700 text-xs text-slate-300">
-              <p className="font-bold mb-2">Debug Info:</p>
-              <p>{debugInfo}</p>
-            </div>
-          )}
+          
         </div>
       </div>
     );
