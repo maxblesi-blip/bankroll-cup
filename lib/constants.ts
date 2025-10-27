@@ -15,7 +15,6 @@ export type DiscordRole = typeof DISCORD_ROLES[keyof typeof DISCORD_ROLES];
  * Prüfe ob User Zugriff hat (Admin/Test ODER Bankroll Participant)
  */
 export function hasAccess(userRoles: string[]): boolean {
-  return userRoles.some((role) =>
-    Object.values(DISCORD_ROLES).includes(role)
-  );
+  const allowedRoles = Object.values(DISCORD_ROLES);
+  return userRoles.some((role) => (allowedRoles as string[]).includes(role));
 }
