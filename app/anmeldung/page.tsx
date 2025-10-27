@@ -1,11 +1,9 @@
-// app/anmeldung/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import { CheckCircle, Loader } from "lucide-react";
-import { hasAccess } from "@/lib/constants";
 
 interface RegistrationData {
   id: string;
@@ -17,7 +15,6 @@ interface RegistrationData {
 export default function AnmeldungPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkingMembership, setCheckingMembership] = useState(false);
   const [isDiscordMember, setIsDiscordMember] = useState(false);
@@ -33,27 +30,6 @@ export default function AnmeldungPage() {
     discord: "",
     livestreamLink: "",
   });
-
-  // ✅ ZUGRIFFS-CHECK - Flexible für Admin/Test/Participant
-  useEffect(() => {
-    if (status === "loading") return;
-
-    if (!session?.user) {
-      router.push("/unauthorized");
-      return;
-    }
-
-    const user = session.user as any;
-    const userRoles = user.roles || [];
-    const authorized = hasAccess(userRoles);
-
-    if (!authorized) {
-      router.push("/unauthorized");
-      return;
-    }
-
-    setIsAuthorized(true);
-  }, [session, status, router]);
 
   // Extrahiere Discord User ID aus der Session
   const getDiscordUserId = () => {
@@ -154,9 +130,9 @@ export default function AnmeldungPage() {
     }
   };
 
-  // Initialer Check wenn Session vorhanden UND authorized
+  // Initialer Check wenn Session vorhanden
   useEffect(() => {
-    if (session?.user && status === "authenticated" && isAuthorized) {
+    if (session?.user && status === "authenticated") {
       const user = session.user as any;
       
       // ✅ Nutze discordEmail von der Session
@@ -178,7 +154,7 @@ export default function AnmeldungPage() {
       // Automatisch Membership prüfen
       checkDiscordMembership();
     }
-  }, [session, status, isAuthorized]);
+  }, [session, status]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -237,22 +213,6 @@ export default function AnmeldungPage() {
       setLoading(false);
     }
   };
-
-  // ✅ LOADING STATE - Während Authorization überprüft wird
-  if (isAuthorized === null || status === "loading") {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8 flex items-center justify-center min-h-96">
-        <div className="flex flex-col items-center gap-4">
-          <Loader size={32} className="animate-spin text-purple-400" />
-          <p className="text-slate-300">Wird überprüft...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthorized) {
-    return null;
-  }
 
   // ✅ SUCCESS STATE - Wenn bereits registriert
   if (successData) {
@@ -334,6 +294,18 @@ export default function AnmeldungPage() {
             <li>✓ Du kannst direkt der Community beitreten</li>
             <li>✓ Deine Daten sind geschützt</li>
           </ul>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading während Session lädt
+  if (status === "loading") {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-8 flex items-center justify-center min-h-96">
+        <div className="flex flex-col items-center gap-4">
+          <Loader size={32} className="animate-spin text-purple-400" />
+          <p className="text-slate-300">Wird geladen...</p>
         </div>
       </div>
     );
