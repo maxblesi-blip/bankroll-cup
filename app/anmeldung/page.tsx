@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
-import { AlertCircle, CheckCircle, Loader } from "lucide-react";
+import { CheckCircle, Loader } from "lucide-react";
 import { hasAccess } from "@/lib/constants";
 
 interface RegistrationData {
