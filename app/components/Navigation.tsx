@@ -159,8 +159,8 @@ export default function Navigation() {
                     </button>
                   )}
 
-                  {/* Dashboard Link - nur wenn Admin/Mod/Player */}
-                  {(user?.role === "admin" || user?.role === "mod" || user?.role === "player") && (
+                  {/* Dashboard Link - nur für Admin/Mod */}
+                  {(user?.role === "admin" || user?.role === "mod") && (
                     <button
                       onClick={() => {
                         window.location.href = "/dashboard";
@@ -275,8 +275,8 @@ export default function Navigation() {
             </Link>
           )}
 
-          {/* Mobile Dashboard Link - nur für player, mod, admin */}
-          {(user?.role === "admin" || user?.role === "mod" || user?.role === "player") && (
+          {/* Mobile Dashboard Link - nur für Admin/Mod */}
+          {(user?.role === "admin" || user?.role === "mod") && (
             <Link
               href="/dashboard"
               onClick={() => setShowMenu(false)}
