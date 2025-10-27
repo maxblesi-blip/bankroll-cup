@@ -1,53 +1,7 @@
-"use client";
-
 import Link from "next/link";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Trophy, Users, TrendingUp, Zap, Loader } from "lucide-react";
-import { hasAccess } from "@/lib/constants";
+import { Trophy, Users, TrendingUp, Zap } from "lucide-react";
 
 export default function Home() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
-
-  // ✅ ZUGRIFFS-CHECK - Flexible für Admin/Test/Participant
-  useEffect(() => {
-    if (status === "loading") return;
-
-    if (!session?.user) {
-      router.push("/unauthorized");
-      return;
-    }
-
-    const user = session.user as any;
-    const userRoles = user.roles || [];
-    const authorized = hasAccess(userRoles);
-
-    if (!authorized) {
-      router.push("/unauthorized");
-      return;
-    }
-
-    setIsAuthorized(true);
-  }, [session, status, router]);
-
-  if (isAuthorized === null || status === "loading") {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader size={40} className="animate-spin text-purple-400" />
-          <p className="text-slate-300">Wird überprüft...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthorized) {
-    return null;
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900">
       {/* Hero */}

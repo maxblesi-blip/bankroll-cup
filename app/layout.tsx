@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Pathnames } from "./components/Pathnames";
 import Providers from "./providers";
 import NavigationWrapper from "./components/NavigationWrapper.tsx";
 import "./globals.css";
@@ -21,9 +20,7 @@ export default function RootLayout({
     <html lang="de" suppressHydrationWarning>
       <body className="bg-slate-950 text-white" suppressHydrationWarning>
         <Providers>
-          <Pathnames>
-            <NavigationWrapper />
-          </Pathnames>
+          <NavigationWrapper />
           <main className="min-h-screen pt-20">
             {children}
           </main>
