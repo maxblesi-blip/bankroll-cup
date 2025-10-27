@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import { CheckCircle, Loader } from "lucide-react";
 
@@ -13,7 +12,6 @@ interface RegistrationData {
 }
 
 export default function AnmeldungPage() {
-  const router = useRouter();
   const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
   const [checkingMembership, setCheckingMembership] = useState(false);
