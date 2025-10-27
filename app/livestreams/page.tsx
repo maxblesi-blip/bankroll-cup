@@ -1,11 +1,7 @@
-// app/livestreams/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { Loader } from "lucide-react";
-import { hasAccess } from "@/lib/constants";
 
 interface Player {
   id: string;
@@ -29,51 +25,25 @@ interface Stream {
 }
 
 export default function Livestreams() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [streams, setStreams] = useState<Stream[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ ZUGRIFFS-CHECK - Flexible für Admin/Test/Participant
   useEffect(() => {
-    if (status === "loading") return;
+    loadStreams();
 
-    if (!session?.user) {
-      router.push("/unauthorized");
-      return;
-    }
-
-    const user = session.user as any;
-    const userRoles = user.roles || [];
-    const authorized = hasAccess(userRoles);
-
-    if (!authorized) {
-      router.push("/unauthorized");
-      return;
-    }
-
-    setIsAuthorized(true);
-  }, [session, status, router]);
-
-  useEffect(() => {
-    if (isAuthorized) {
+    // Auto-Refresh alle 15 Sekunden
+    const interval = setInterval(() => {
       loadStreams();
+    }, 15000);
 
-      // Auto-Refresh alle 15 Sekunden
-      const interval = setInterval(() => {
-        loadStreams();
-      }, 15000);
-
-      return () => clearInterval(interval);
-    }
-  }, [isAuthorized]);
+    return () => clearInterval(interval);
+  }, []);
 
   const loadStreams = async () => {
     try {
       setLoading(true);
 
-      // ✅ Lade Spieler von /api/leaderboard (richtig!)
+      // ✅ Lade Spieler von /api/leaderboard
       console.log("📡 Lade Spieler von /api/leaderboard...");
       const leaderboardResponse = await fetch("/api/leaderboard");
       const leaderboardData = await leaderboardResponse.json();
@@ -183,21 +153,6 @@ export default function Livestreams() {
       setLoading(false);
     }
   };
-
-  if (isAuthorized === null || status === "loading") {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8 flex items-center justify-center min-h-96">
-        <div className="flex flex-col items-center gap-4">
-          <Loader size={32} className="animate-spin text-purple-400" />
-          <p className="text-slate-300">Wird überprüft...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthorized) {
-    return null;
-  }
 
   if (loading && streams.length === 0) {
     return (
