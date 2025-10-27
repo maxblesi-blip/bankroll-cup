@@ -1,8 +1,11 @@
 "use client";
 
-import { Trophy, } from "lucide-react";
+import { Trophy } from "lucide-react";
+import { useSession, signIn } from "next-auth/react";
 
 export default function UnauthorizedPage() {
+  const { status } = useSession();
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="max-w-3xl mx-auto">
@@ -17,6 +20,45 @@ export default function UnauthorizedPage() {
           <p className="text-3xl text-slate-300 font-bold mb-2">Season 1</p>
           <div className="inline-block bg-yellow-900/30 border border-yellow-700 rounded-full px-4 py-2 mb-4">
             <p className="text-yellow-300 font-bold">🚀 Startet Anfang 2026</p>
+          </div>
+        </div>
+
+        {/* Login Button Section */}
+        {status !== "authenticated" && (
+          <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-purple-700/50 rounded-lg p-8 mb-12 text-center">
+            <h2 className="text-2xl font-bold mb-4">🔐 Einloggen erforderlich</h2>
+            <p className="text-slate-300 mb-6">
+              Um auf den MP Bankroll Cup zuzugreifen, melde dich mit deinem Discord Account an.
+            </p>
+            <button
+              onClick={() => signIn("discord")}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg transition inline-flex items-center gap-2"
+            >
+              🎮 Mit Discord einloggen
+            </button>
+          </div>
+        )}
+
+        {/* Info Cards */}
+        <div className="grid md:grid-cols-2 gap-6 mb-12">
+          {/* Start Info */}
+          <div className="bg-gradient-to-br from-blue-900/40 to-cyan-900/40 border border-blue-700/50 rounded-lg p-8">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-blue-400 mb-4">🚀 Start</h2>
+              <p className="text-slate-400 text-sm mb-2">Startkapital</p>
+              <p className="text-4xl font-bold text-cyan-400">500 EUR</p>
+              <p className="text-xs text-slate-400 mt-3">Dein Anfangsbudget für den Cup</p>
+            </div>
+          </div>
+
+          {/* Goal Info */}
+          <div className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border border-green-700/50 rounded-lg p-8">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-green-400 mb-4">🏆 Ziel</h2>
+              <p className="text-slate-400 text-sm mb-2">Zielwert</p>
+              <p className="text-4xl font-bold text-emerald-400">5.000 EUR</p>
+              <p className="text-xs text-slate-400 mt-3">(10x Multiplikator)</p>
+            </div>
           </div>
         </div>
 
@@ -118,7 +160,6 @@ export default function UnauthorizedPage() {
             </div>
           </div>
         </div>
-
 
         {/* Info Box */}
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-8">
