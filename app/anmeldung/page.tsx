@@ -350,7 +350,7 @@ export default function AnmeldungPage() {
           <span className="text-2xl">✅</span>
           <div>
             <p className="font-bold text-green-400">Du bist eingeloggt</p>
-            <p className="text-sm text-slate-300">Discord User: <span className="font-bold">{session.user?.name}</span></p>
+            <p className="text-sm text-slate-300">Discord User: <span className="font-bold">{session?.user?.name}</span></p>
           </div>
         </div>
 
@@ -407,7 +407,7 @@ export default function AnmeldungPage() {
         <span className="text-2xl">✅</span>
         <div>
           <p className="font-bold text-green-400">Du bist eingeloggt & im Discord Server</p>
-          <p className="text-sm text-slate-300">Discord User: <span className="font-bold">{session.user?.name}</span></p>
+          <p className="text-sm text-slate-300">Discord User: <span className="font-bold">{session?.user?.name}</span></p>
         </div>
       </div>
 
