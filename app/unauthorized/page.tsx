@@ -2,9 +2,45 @@
 
 import { Trophy } from "lucide-react";
 import { useSession, signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Loader } from "lucide-react";
+import { hasAccess } from "@/lib/constants";
 
 export default function UnauthorizedPage() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
+
+  // ✅ Wenn eingeloggt - prüfe Rollen
+  useEffect(() => {
+    if (status === "loading") return;
+
+    if (session?.user) {
+      const user = session.user as any;
+      const userRoles = user.roles || [];
+      const authorized = hasAccess(userRoles);
+
+      if (authorized) {
+        // Hat Zugriff - zur Homepage
+        router.push("/");
+        return;
+      }
+    }
+
+    setIsChecking(false);
+  }, [session, status, router]);
+
+  if (isChecking || status === "loading") {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader size={40} className="animate-spin text-purple-400" />
+          <p className="text-slate-300">Wird überprüft...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -23,8 +59,8 @@ export default function UnauthorizedPage() {
           </div>
         </div>
 
-        {/* Login Button Section */}
-        {status !== "authenticated" && (
+        {/* Login Section */}
+        {!session?.user && (
           <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-purple-700/50 rounded-lg p-8 mb-12 text-center">
             <h2 className="text-2xl font-bold mb-4">🔐 Einloggen erforderlich</h2>
             <p className="text-slate-300 mb-6">
@@ -158,6 +194,30 @@ export default function UnauthorizedPage() {
                 <p className="text-sm text-slate-300">Der erste Spieler mit 5.000€ gewinnt den MP Bankroll Cup 🏆</p>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Call to Action */}
+        <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-purple-700/50 rounded-lg p-8 text-center mb-12">
+          <h2 className="text-3xl font-bold mb-4">🎮 Willst du teilnehmen?</h2>
+
+          <p className="text-slate-300 mb-8 text-lg">
+            Tritt unserem Discord bei für mehr Informationen und um Zugriff auf den Bankroll Cup zu erhalten!
+          </p>
+
+          <a
+            href="https://discord.gg/YbeKE6YEa8"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-lg transition text-lg"
+          >
+            💬 Zum Discord beitreten
+          </a>
+
+          <div className="mt-8 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
+            <p className="text-sm text-slate-400">
+              Du erhältst Zugriff auf alle Features und den Bankroll-Update Editor, sobald du dem Discord beigetreten bist und die erforderliche Rolle erhältst!
+            </p>
           </div>
         </div>
 
