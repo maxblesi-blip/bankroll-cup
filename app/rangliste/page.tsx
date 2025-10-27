@@ -2,6 +2,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import {
   LineChart,
   Line,
@@ -12,7 +14,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { TrendingUp, Calendar } from "lucide-react";
+import { TrendingUp, Calendar, RefreshCw, Loader } from "lucide-react";
+import { hasAccess } from "@/lib/constants";
 
 interface Player {
   rank: number;
@@ -30,108 +33,131 @@ interface ChartData {
   [key: string]: string | number;
 }
 
+interface LeaderboardResponse {
+  players: Player[];
+  chartData: ChartData[];
+  lastUpdated: string;
+}
+
 export default function Rangliste() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [timeframe, setTimeframe] = useState("week");
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock Daten - würde von Google Sheets kommen
-  const mockPlayers: Player[] = [
-    {
-      rank: 1,
-      name: "Spieler A",
-      ggpokerNickname: "ProPlayer123",
-      bankroll: 3500,
-      startBankroll: 500,
-      percentToGoal: 70,
-      lastVerification: "2025-10-22",
-      livestreamLink: "https://twitch.tv/prostream",
-    },
-    {
-      rank: 2,
-      name: "Spieler B",
-      ggpokerNickname: "HighRoller99",
-      bankroll: 2800,
-      startBankroll: 500,
-      percentToGoal: 56,
-      lastVerification: "2025-10-22",
-    },
-    {
-      rank: 3,
-      name: "Spieler C",
-      ggpokerNickname: "GrindNinja",
-      bankroll: 2100,
-      startBankroll: 500,
-      percentToGoal: 42,
-      lastVerification: "2025-10-21",
-    },
-    {
-      rank: 4,
-      name: "Spieler D",
-      ggpokerNickname: "PokerMaster88",
-      bankroll: 1500,
-      startBankroll: 500,
-      percentToGoal: 30,
-      lastVerification: "2025-10-20",
-    },
-    {
-      rank: 5,
-      name: "Spieler E",
-      ggpokerNickname: "LuckyCards",
-      bankroll: 750,
-      startBankroll: 500,
-      percentToGoal: 15,
-      lastVerification: "2025-10-19",
-    },
-  ];
-
-  const mockChartData: ChartData[] = [
-    {
-      date: "Wk 1",
-      "Spieler A": 500,
-      "Spieler B": 500,
-      "Spieler C": 500,
-      "Spieler D": 500,
-    },
-    {
-      date: "Wk 2",
-      "Spieler A": 650,
-      "Spieler B": 580,
-      "Spieler C": 520,
-      "Spieler D": 490,
-    },
-    {
-      date: "Wk 3",
-      "Spieler A": 1200,
-      "Spieler B": 1100,
-      "Spieler C": 900,
-      "Spieler D": 700,
-    },
-    {
-      date: "Wk 4",
-      "Spieler A": 1800,
-      "Spieler B": 1500,
-      "Spieler C": 1300,
-      "Spieler D": 900,
-    },
-    {
-      date: "Wk 5",
-      "Spieler A": 3500,
-      "Spieler B": 2800,
-      "Spieler C": 2100,
-      "Spieler D": 1500,
-    },
-  ];
-
+  // ✅ ZUGRIFFS-CHECK - Flexible für Admin/Test/Participant
   useEffect(() => {
-    // In Produktion: Daten von Google Sheets holen
-    setPlayers(mockPlayers);
-    setChartData(mockChartData);
-  }, []);
+    if (status === "loading") return;
+
+    if (!session?.user) {
+      router.push("/unauthorized");
+      return;
+    }
+
+    const user = session.user as any;
+    const userRoles = user.roles || [];
+    const authorized = hasAccess(userRoles);
+
+    if (!authorized) {
+      router.push("/unauthorized");
+      return;
+    }
+
+    setIsAuthorized(true);
+  }, [session, status, router]);
+
+  // Daten von API abrufen
+  const fetchLeaderboardData = async () => {
+    try {
+      setError(null);
+      setRefreshing(true);
+      const response = await fetch("/api/leaderboard");
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch leaderboard data");
+      }
+
+      const data: LeaderboardResponse = await response.json();
+      setPlayers(data.players || []);
+      setChartData(data.chartData || []);
+      setLastUpdate(new Date());
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+      setError("Fehler beim Laden der Rangliste");
+    } finally {
+      setRefreshing(false);
+      setLoading(false);
+    }
+  };
+
+  // Initialer Datenladevorgang - nur wenn authorized
+  useEffect(() => {
+    if (isAuthorized) {
+      fetchLeaderboardData();
+    }
+  }, [isAuthorized]);
+
+  // Auto-Refresh alle 30 Sekunden
+  useEffect(() => {
+    if (!isAuthorized) return;
+
+    const interval = setInterval(() => {
+      fetchLeaderboardData();
+    }, 30000); // 30 Sekunden
+
+    return () => clearInterval(interval);
+  }, [isAuthorized]);
 
   const progressToGoal = (bankroll: number) => {
     return Math.min((bankroll / 5000) * 100, 100);
   };
+
+  const formatTimeAgo = (date: Date | null) => {
+    if (!date) return "Nie";
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (seconds < 60) return "gerade eben";
+    if (seconds < 3600) return `vor ${Math.floor(seconds / 60)}m`;
+    if (seconds < 86400) return `vor ${Math.floor(seconds / 3600)}h`;
+    return date.toLocaleDateString("de-DE");
+  };
+
+  if (isAuthorized === null || status === "loading") {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 flex items-center justify-center min-h-96">
+        <div className="flex flex-col items-center gap-4">
+          <Loader size={32} className="animate-spin text-purple-400" />
+          <p className="text-slate-300">Wird überprüft...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null;
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="animate-spin mb-4">
+              <RefreshCw size={40} className="text-blue-400" />
+            </div>
+            <p className="text-slate-400">Rangliste wird geladen...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -142,78 +168,95 @@ export default function Rangliste() {
         </p>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 mb-8">
+          <p className="text-red-400">{error}</p>
+        </div>
+      )}
+
       {/* Timeframe Selection */}
       <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 mb-8">
-        <div className="flex flex-wrap gap-3">
-          <div className="flex items-center gap-2 text-slate-400 mr-6">
+        <div className="flex flex-wrap gap-3 items-center justify-between">
+          <div className="flex items-center gap-2 text-slate-400">
             <Calendar size={18} />
             <span>Zeitraum:</span>
           </div>
-          {["week", "month", "all"].map((t) => (
-            <button
-              key={t}
-              onClick={() => setTimeframe(t)}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                timeframe === t
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-              }`}
-            >
-              {t === "week" && "Diese Woche"}
-              {t === "month" && "Diesen Monat"}
-              {t === "all" && "Gesamte Serie"}
-            </button>
-          ))}
+          <div className="flex flex-wrap gap-3">
+            {["week", "month", "all"].map((t) => (
+              <button
+                key={t}
+                onClick={() => setTimeframe(t)}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  timeframe === t
+                    ? "bg-blue-600 text-white"
+                    : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                }`}
+              >
+                {t === "week" && "Diese Woche"}
+                {t === "month" && "Diesen Monat"}
+                {t === "all" && "Gesamte Serie"}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={fetchLeaderboardData}
+            disabled={refreshing}
+            className="ml-auto px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-50 transition flex items-center gap-2 text-slate-300"
+          >
+            <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+            Aktualisieren
+          </button>
         </div>
+        {lastUpdate && (
+          <p className="text-xs text-slate-500 mt-3">
+            Zuletzt aktualisiert: {formatTimeAgo(lastUpdate)}
+          </p>
+        )}
       </div>
 
       {/* Chart */}
-      <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 mb-8">
-        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-          <TrendingUp size={24} className="text-blue-400" />
-          Bankroll Verlauf
-        </h2>
-        <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-            <XAxis dataKey="date" stroke="#94a3b8" />
-            <YAxis stroke="#94a3b8" />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#1e293b",
-                border: "1px solid #475569",
-                borderRadius: "8px",
-              }}
-              formatter={(value) => `€${value}`}
-            />
-            <Legend />
-            <Line
-              type="monotone"
-              dataKey="Spieler A"
-              stroke="#fbbf24"
-              strokeWidth={2}
-            />
-            <Line
-              type="monotone"
-              dataKey="Spieler B"
-              stroke="#a78bfa"
-              strokeWidth={2}
-            />
-            <Line
-              type="monotone"
-              dataKey="Spieler C"
-              stroke="#60a5fa"
-              strokeWidth={2}
-            />
-            <Line
-              type="monotone"
-              dataKey="Spieler D"
-              stroke="#34d399"
-              strokeWidth={2}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      {chartData.length > 0 && (
+        <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 mb-8">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <TrendingUp size={24} className="text-blue-400" />
+            Bankroll Verlauf
+          </h2>
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="date" stroke="#94a3b8" />
+              <YAxis stroke="#94a3b8" />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#1e293b",
+                  border: "1px solid #475569",
+                  borderRadius: "8px",
+                }}
+                formatter={(value) => `€${value}`}
+              />
+              <Legend />
+              {players.slice(0, 4).map((player, index) => {
+                const colors = [
+                  "#fbbf24",
+                  "#a78bfa",
+                  "#60a5fa",
+                  "#34d399",
+                ];
+                return (
+                  <Line
+                    key={player.name}
+                    type="monotone"
+                    dataKey={player.name}
+                    stroke={colors[index % colors.length]}
+                    strokeWidth={2}
+                  />
+                );
+              })}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Rankings Table */}
       <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
@@ -262,7 +305,20 @@ export default function Rangliste() {
                       <span className="font-bold text-lg">#{player.rank}</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 font-bold">{player.name}</td>
+                  <td className="px-6 py-4 font-bold">
+                    {player.livestreamLink ? (
+                      <a
+                        href={player.livestreamLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:underline"
+                      >
+                        {player.name}
+                      </a>
+                    ) : (
+                      player.name
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-slate-300">
                     {player.ggpokerNickname}
                   </td>

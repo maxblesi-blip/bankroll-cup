@@ -4,7 +4,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
-import { AlertCircle, CheckCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, Loader } from "lucide-react";
+import { hasAccess } from "@/lib/constants";
 
 interface RegistrationData {
   id: string;
@@ -16,6 +17,7 @@ interface RegistrationData {
 export default function AnmeldungPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkingMembership, setCheckingMembership] = useState(false);
   const [isDiscordMember, setIsDiscordMember] = useState(false);
@@ -26,11 +28,32 @@ export default function AnmeldungPage() {
   
   const [formData, setFormData] = useState({
     name: "",
-    email: "", // ✅ Wird mit Discord Email vorgefüllt (nicht änderbar)
+    email: "",
     ggpokerNickname: "",
     discord: "",
     livestreamLink: "",
   });
+
+  // ✅ ZUGRIFFS-CHECK - Flexible für Admin/Test/Participant
+  useEffect(() => {
+    if (status === "loading") return;
+
+    if (!session?.user) {
+      router.push("/unauthorized");
+      return;
+    }
+
+    const user = session.user as any;
+    const userRoles = user.roles || [];
+    const authorized = hasAccess(userRoles);
+
+    if (!authorized) {
+      router.push("/unauthorized");
+      return;
+    }
+
+    setIsAuthorized(true);
+  }, [session, status, router]);
 
   // Extrahiere Discord User ID aus der Session
   const getDiscordUserId = () => {
@@ -131,9 +154,9 @@ export default function AnmeldungPage() {
     }
   };
 
-  // Initialer Check wenn Session vorhanden
+  // Initialer Check wenn Session vorhanden UND authorized
   useEffect(() => {
-    if (session?.user && status === "authenticated") {
+    if (session?.user && status === "authenticated" && isAuthorized) {
       const user = session.user as any;
       
       // ✅ Nutze discordEmail von der Session
@@ -143,9 +166,9 @@ export default function AnmeldungPage() {
       
       setFormData((prev) => ({
         ...prev,
-        name: prev.name, // User muss Name selbst eingeben
-        discord: user.discordUsername || user.name || user.discord || "", // Discord Username
-        email: emailFromDiscord, // ✅ Discord Email (nicht änderbar!)
+        name: prev.name,
+        discord: user.discordUsername || user.name || user.discord || "",
+        email: emailFromDiscord,
         livestreamLink: prev.livestreamLink || user.livestreamLink || user.bio || "",
       }));
       
@@ -155,7 +178,7 @@ export default function AnmeldungPage() {
       // Automatisch Membership prüfen
       checkDiscordMembership();
     }
-  }, [session, status]);
+  }, [session, status, isAuthorized]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -187,11 +210,11 @@ export default function AnmeldungPage() {
         body: JSON.stringify({
           id: Date.now().toString(),
           name: formData.name,
-          email: formData.email, // ✅ Discord Email (nicht geändert)
+          email: formData.email,
           ggpokerNickname: formData.ggpokerNickname,
           discord: formData.discord,
           livestreamLink: formData.livestreamLink,
-          discordId: getDiscordUserId(), // ✅ NEU: Discord ID
+          discordId: getDiscordUserId(),
           bankroll: 0,
           experience: "beginner",
           createdAt: new Date().toISOString(),
@@ -215,166 +238,85 @@ export default function AnmeldungPage() {
     }
   };
 
-  // Zeige Loading während Session geladen wird
-  if (status === "loading" || (session && checkingMembership)) {
+  // ✅ LOADING STATE - Während Authorization überprüft wird
+  if (isAuthorized === null || status === "loading") {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <p className="text-slate-400">Wird geladen...</p>
+      <div className="max-w-7xl mx-auto px-4 py-8 flex items-center justify-center min-h-96">
+        <div className="flex flex-col items-center gap-4">
+          <Loader size={32} className="animate-spin text-purple-400" />
+          <p className="text-slate-300">Wird überprüft...</p>
+        </div>
       </div>
     );
   }
 
-  // ✅ SUCCESS SCREEN - nach erfolgreicher Anmeldung oder wenn bereits registriert
+  if (!isAuthorized) {
+    return null;
+  }
+
+  // ✅ SUCCESS STATE - Wenn bereits registriert
   if (successData) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-2">🎉 Bewerbung eingereicht!</h1>
-        <p className="text-slate-400 mb-8">Danke für dein Interesse!</p>
+        <h1 className="text-4xl font-bold mb-2">🃏 MP Bankroll Cup</h1>
+        <p className="text-slate-400 mb-8">Danke für deine Anmeldung!</p>
 
-        {/* Success Message */}
-        <div className="bg-green-900/30 border border-green-700 rounded-lg p-8 mb-8">
-          <div className="flex items-start gap-4">
-            <CheckCircle className="text-green-400 flex-shrink-0 mt-1" size={32} />
+        <div className="bg-green-900/30 border border-green-700 rounded-lg p-6 mb-8">
+          <div className="flex gap-3">
+            <CheckCircle className="text-green-400 flex-shrink-0" size={24} />
             <div>
-              <h2 className="text-2xl font-bold text-green-400 mb-3">
-                ✅ Bewerbung erfolgreich eingereicht
-              </h2>
-              <p className="text-slate-200">
-                Hallo <span className="font-bold">{successData.name}</span>,
-              </p>
-              <p className="text-slate-300 mt-2">
-                deine Bewerbung wird jetzt von unserem Admin-Team bearbeitet. Bitte habe etwas Geduld - wir überprüfen alle Daten sorgfältig!
+              <p className="font-bold text-green-400 mb-2">✅ Anmeldung erhalten</p>
+              <p className="text-slate-300">
+                Deine Anmeldung wurde erfolgreich eingereicht! Wir überprüfen deine Daten und melden uns innerhalb von 24-48 Stunden bei dir.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Bewerbungs-Status */}
-        <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 mb-8 space-y-6">
+        <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 space-y-4 mb-8">
+          <h3 className="font-bold text-lg">📋 Deine Daten</h3>
           <div>
-            <h3 className="font-bold text-purple-400 mb-4 flex items-center gap-2">
-              📋 Deine Bewerbungsdaten
-            </h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Name:</span>
-                <span className="text-white font-bold">{successData.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Email:</span>
-                <span className="text-white font-bold">{successData.email}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Status:</span>
-                <span className="text-yellow-400 font-bold">⏳ In Bearbeitung...</span>
-              </div>
-            </div>
+            <p className="text-slate-400 text-sm">Name</p>
+            <p className="font-bold">{successData.name}</p>
           </div>
-
-          <div className="border-t border-slate-700 pt-6">
-            <h3 className="font-bold text-blue-400 mb-3 flex items-center gap-2">
-              💬 Bei Fragen?
-            </h3>
-            <div className="bg-slate-900 border border-slate-700 rounded p-4">
-              <p className="text-slate-300 text-sm mb-2">
-                Kontaktiere uns auf Discord:
-              </p>
-              <p className="text-lg font-bold text-purple-400">
-                👤 Max Powker
-              </p>
-              <p className="text-xs text-slate-400 mt-2">
-                Wir helfen dir gerne weiter bei Fragen oder Problemen!
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Timeline */}
-        <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 mb-8">
-          <h3 className="font-bold text-purple-400 mb-4 flex items-center gap-2">
-            ⏱️ Was kommt danach?
-          </h3>
-          <div className="space-y-4">
-            <div className="flex gap-4">
-              <div className="flex flex-col items-center">
-                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                  ✓
-                </div>
-                <div className="w-0.5 h-8 bg-slate-700 my-2"></div>
-              </div>
-              <div>
-                <p className="font-bold text-green-400">Bewerbung eingereicht</p>
-                <p className="text-sm text-slate-400">Deine Daten wurden gespeichert</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="flex flex-col items-center">
-                <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                  ⏳
-                </div>
-                <div className="w-0.5 h-8 bg-slate-700 my-2"></div>
-              </div>
-              <div>
-                <p className="font-bold text-yellow-400">Admin-Review (24-48h)</p>
-                <p className="text-sm text-slate-400">Deine Bewerbung wird überprüft</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="flex flex-col items-center">
-                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                  →
-                </div>
-              </div>
-              <div>
-                <p className="font-bold text-purple-400">Genehmigung & Einladung</p>
-                <p className="text-sm text-slate-400">Du erhältst eine Email oder Discord Nachricht</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Hinweise */}
-        <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4 mb-8 flex gap-3">
-          <AlertCircle className="text-blue-400 flex-shrink-0 mt-0.5" size={20} />
           <div>
-            <p className="text-sm text-blue-300">
-              <span className="font-bold">Hinweis:</span> Überprüfe regelmäßig deine Emails (auch Spam-Ordner). Bei Fragen kannst du uns auf Discord kontaktieren!
-            </p>
+            <p className="text-slate-400 text-sm">Email</p>
+            <p className="font-bold">{successData.email}</p>
+          </div>
+          <div>
+            <p className="text-slate-400 text-sm">Status</p>
+            <p className="font-bold text-yellow-400 capitalize">{successData.status}</p>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-4">
-          <button
-            onClick={() => router.push("/")}
-            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition"
-          >
-            ← Zur Startseite
-          </button>
-          <button
-            onClick={() => router.push("/ranking")}
-            className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg transition"
-          >
-            📊 Zur Rangliste →
-          </button>
+        <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-6">
+          <p className="text-slate-300">
+            💬 Weitere Fragen? Schreib uns im{" "}
+            <a
+              href="https://discord.gg/YbeKE6YEa8"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-blue-400 hover:text-blue-300"
+            >
+              Discord
+            </a>
+          </p>
         </div>
       </div>
     );
   }
 
-  // 1. Wenn nicht eingeloggt
-  if (!session) {
+  // 1. Wenn NICHT eingeloggt
+  if (status === "unauthenticated") {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-2">MP Bankroll Cup</h1>
+        <h1 className="text-4xl font-bold mb-2">🃏 MP Bankroll Cup</h1>
         <p className="text-slate-400 mb-8">Melde dich jetzt an!</p>
 
-        <div className="bg-gradient-to-r from-blue-900 to-cyan-900 border border-blue-700 rounded-lg p-8 mb-8">
-          <h2 className="text-2xl font-bold mb-4">🔐 Du musst eingeloggt sein</h2>
+        <div className="bg-purple-900/30 border border-purple-700 rounded-lg p-8 mb-8">
+          <h2 className="text-2xl font-bold mb-4">🔐 Discord Anmeldung erforderlich</h2>
           <p className="text-slate-200 mb-6">
-            Um dich anzumelden, musst du dich zuerst mit Discord einloggen. Das ermöglicht uns, deine Discord-Daten automatisch zu erfassen.
+            Um dich anzumelden, logge dich zunächst mit deinem Discord Account ein.
           </p>
           <button
             onClick={() => signIn("discord")}
@@ -513,22 +455,22 @@ export default function AnmeldungPage() {
         </div>
 
         <div>
-  <label className="block text-sm font-bold mb-2">
-    Email Adresse *
-  </label>
-  <input
-    type="email"
-    name="email"
-    value={formData.email}
-    onChange={handleChange}
-    className="w-full bg-slate-900 border border-slate-700 rounded px-4 py-2 text-white focus:border-purple-500 outline-none"
-    placeholder="Deine Email Adresse"
-    required
-  />
-  <p className="text-xs text-slate-400 mt-1">
-    Von deinem Discord Account vorausgefüllt - aber du kannst sie ändern
-  </p>
-</div>
+          <label className="block text-sm font-bold mb-2">
+            Email Adresse *
+          </label>
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            className="w-full bg-slate-900 border border-slate-700 rounded px-4 py-2 text-white focus:border-purple-500 outline-none"
+            placeholder="Deine Email Adresse"
+            required
+          />
+          <p className="text-xs text-slate-400 mt-1">
+            Von deinem Discord Account vorausgefüllt - aber du kannst sie ändern
+          </p>
+        </div>
 
         <div>
           <label className="block text-sm font-bold mb-2">GGPoker Username *</label>

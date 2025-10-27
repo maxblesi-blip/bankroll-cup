@@ -5,39 +5,34 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Trophy, Users, TrendingUp, Zap, Loader } from "lucide-react";
-import { DISCORD_ROLES } from "@/lib/constants";
+import { hasAccess } from "@/lib/constants";
 
 export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
-  // ✅ ZUGRIFFS-CHECK - Role basiert
+  // ✅ ZUGRIFFS-CHECK - Flexible für Admin/Test/Participant
   useEffect(() => {
     if (status === "loading") return;
 
-    // Nicht eingeloggt → /unauthorized
     if (!session?.user) {
       router.push("/unauthorized");
       return;
     }
 
-    // Role checken
     const user = session.user as any;
     const userRoles = user.roles || [];
-    const hasRole = userRoles.includes(DISCORD_ROLES.BANKROLL_CUP_PARTICIPANT);
+    const authorized = hasAccess(userRoles);
 
-    if (!hasRole) {
-      // Keine Role → /unauthorized
+    if (!authorized) {
       router.push("/unauthorized");
       return;
     }
 
-    // Alles OK
     setIsAuthorized(true);
   }, [session, status, router]);
 
-  // ✅ LOADING STATE - Während Authorization überprüft wird
   if (isAuthorized === null || status === "loading") {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">

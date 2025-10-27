@@ -1,9 +1,52 @@
-// app/regeln/page.tsx
 "use client";
 
-import { Clock, CheckCircle, Target, Video, AlertCircle } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Clock, CheckCircle, Target, Video, AlertCircle, Loader } from "lucide-react";
+import { hasAccess } from "@/lib/constants";
 
 export default function RegelnPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+
+  // ✅ ZUGRIFFS-CHECK - Flexible für Admin/Test/Participant
+  useEffect(() => {
+    if (status === "loading") return;
+
+    if (!session?.user) {
+      router.push("/unauthorized");
+      return;
+    }
+
+    const user = session.user as any;
+    const userRoles = user.roles || [];
+    const authorized = hasAccess(userRoles);
+
+    if (!authorized) {
+      router.push("/unauthorized");
+      return;
+    }
+
+    setIsAuthorized(true);
+  }, [session, status, router]);
+
+  if (isAuthorized === null || status === "loading") {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 flex items-center justify-center min-h-96">
+        <div className="flex flex-col items-center gap-4">
+          <Loader size={32} className="animate-spin text-purple-400" />
+          <p className="text-slate-300">Wird überprüft...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null;
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div>

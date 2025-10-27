@@ -2,7 +2,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Loader } from "lucide-react";
+import { hasAccess } from "@/lib/constants";
 
 interface Player {
   id: string;
@@ -26,19 +29,45 @@ interface Stream {
 }
 
 export default function Livestreams() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [streams, setStreams] = useState<Stream[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // ✅ ZUGRIFFS-CHECK - Flexible für Admin/Test/Participant
   useEffect(() => {
-    loadStreams();
+    if (status === "loading") return;
 
-    // Auto-Refresh alle 15 Sekunden
-    const interval = setInterval(() => {
+    if (!session?.user) {
+      router.push("/unauthorized");
+      return;
+    }
+
+    const user = session.user as any;
+    const userRoles = user.roles || [];
+    const authorized = hasAccess(userRoles);
+
+    if (!authorized) {
+      router.push("/unauthorized");
+      return;
+    }
+
+    setIsAuthorized(true);
+  }, [session, status, router]);
+
+  useEffect(() => {
+    if (isAuthorized) {
       loadStreams();
-    }, 15000);
 
-    return () => clearInterval(interval);
-  }, []);
+      // Auto-Refresh alle 15 Sekunden
+      const interval = setInterval(() => {
+        loadStreams();
+      }, 15000);
+
+      return () => clearInterval(interval);
+    }
+  }, [isAuthorized]);
 
   const loadStreams = async () => {
     try {
@@ -155,6 +184,21 @@ export default function Livestreams() {
     }
   };
 
+  if (isAuthorized === null || status === "loading") {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 flex items-center justify-center min-h-96">
+        <div className="flex flex-col items-center gap-4">
+          <Loader size={32} className="animate-spin text-purple-400" />
+          <p className="text-slate-300">Wird überprüft...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null;
+  }
+
   if (loading && streams.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 flex items-center gap-3">
@@ -193,7 +237,7 @@ export default function Livestreams() {
                     src={stream.thumbnail}
                     alt={stream.name}
                     className="w-full h-full object-cover group-hover:brightness-75 transition-all"
-                   onError={(_e) => {
+                    onError={(_e) => {
                       console.error(`Thumbnail Error für ${stream.name}`);
                     }}
                   />
