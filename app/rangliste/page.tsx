@@ -1,9 +1,6 @@
-// app/rangliste/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import {
   LineChart,
   Line,
@@ -14,8 +11,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { TrendingUp, Calendar, RefreshCw, Loader } from "lucide-react";
-import { hasAccess } from "@/lib/constants";
+import { TrendingUp, Calendar, RefreshCw } from "lucide-react";
 
 interface Player {
   rank: number;
@@ -40,9 +36,6 @@ interface LeaderboardResponse {
 }
 
 export default function Rangliste() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [timeframe, setTimeframe] = useState("week");
@@ -50,27 +43,6 @@ export default function Rangliste() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // ✅ ZUGRIFFS-CHECK - Flexible für Admin/Test/Participant
-  useEffect(() => {
-    if (status === "loading") return;
-
-    if (!session?.user) {
-      router.push("/unauthorized");
-      return;
-    }
-
-    const user = session.user as any;
-    const userRoles = user.roles || [];
-    const authorized = hasAccess(userRoles);
-
-    if (!authorized) {
-      router.push("/unauthorized");
-      return;
-    }
-
-    setIsAuthorized(true);
-  }, [session, status, router]);
 
   // Daten von API abrufen
   const fetchLeaderboardData = async () => {
@@ -96,23 +68,19 @@ export default function Rangliste() {
     }
   };
 
-  // Initialer Datenladevorgang - nur wenn authorized
+  // Initialer Datenladevorgang
   useEffect(() => {
-    if (isAuthorized) {
-      fetchLeaderboardData();
-    }
-  }, [isAuthorized]);
+    fetchLeaderboardData();
+  }, []);
 
   // Auto-Refresh alle 30 Sekunden
   useEffect(() => {
-    if (!isAuthorized) return;
-
     const interval = setInterval(() => {
       fetchLeaderboardData();
     }, 30000); // 30 Sekunden
 
     return () => clearInterval(interval);
-  }, [isAuthorized]);
+  }, []);
 
   const progressToGoal = (bankroll: number) => {
     return Math.min((bankroll / 5000) * 100, 100);
@@ -128,21 +96,6 @@ export default function Rangliste() {
     if (seconds < 86400) return `vor ${Math.floor(seconds / 3600)}h`;
     return date.toLocaleDateString("de-DE");
   };
-
-  if (isAuthorized === null || status === "loading") {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8 flex items-center justify-center min-h-96">
-        <div className="flex flex-col items-center gap-4">
-          <Loader size={32} className="animate-spin text-purple-400" />
-          <p className="text-slate-300">Wird überprüft...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthorized) {
-    return null;
-  }
 
   if (loading) {
     return (
