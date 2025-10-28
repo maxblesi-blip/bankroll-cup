@@ -27,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Upload to Supabase Storage
     const filePath = `tickets/${ticketId}/${user_id}/${Date.now()}-${fileName}`;
 
-    const { data, error } = await supabaseAdmin.storage
+    const { error } = await supabaseAdmin.storage
       .from('ticket-images')
       .upload(filePath, buffer, {
         contentType: 'image/jpeg',
