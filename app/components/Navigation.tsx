@@ -13,7 +13,10 @@ export default function Navigation() {
   const [showMenu, setShowMenu] = useState(false);
   const [isInLeaderboard, setIsInLeaderboard] = useState(false);
   const [loading, setLoading] = useState(true);
-  const menuRef = useRef<HTMLDivElement>(null);
+
+  // ⬇️ NEU: getrennte Refs für Desktop-Dropdown UND Mobile-Menü
+  const dropdownRef = useRef<HTMLDivElement>(null); // Desktop (Button + Dropdown)
+  const mobileMenuRef = useRef<HTMLDivElement>(null); // Mobile Menü-Container
 
   // ✅ NICHT rendern wenn /unauthorized
   if (isUnauthorized) {
@@ -21,8 +24,6 @@ export default function Navigation() {
   }
 
   const user = session?.user as any;
-  
-  // ... Rest des Codes bleibt gleich ...
 
   // ✅ Lade Leaderboard und prüfe ob User darin ist
   useEffect(() => {
@@ -35,15 +36,15 @@ export default function Navigation() {
       try {
         const res = await fetch("/api/leaderboard");
         const data = await res.json();
-        
+
         // ✅ PRIMÄR: Prüfe Discord ID
         // Fallback: Prüfe Email (für ältere Einträge)
         const found = data.players?.some(
-          (p: any) => 
+          (p: any) =>
             (user.discordId && p.discordId === user.discordId) ||
             (p.email?.toLowerCase() === user.email?.toLowerCase())
         );
-        
+
         setIsInLeaderboard(!!found);
       } catch (error) {
         console.error("Fehler beim Laden Leaderboard:", error);
@@ -53,22 +54,32 @@ export default function Navigation() {
     };
 
     checkLeaderboard();
-  }, [user?.email]);
+  }, [user?.email, user?.discordId]);
 
-  // ✅ Schließe Menü wenn außerhalb geklickt wird
+  // ✅ Outside-Click + Escape nur wenn Menu offen
   useEffect(() => {
+    if (!showMenu) return;
+
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const insideDesktop = dropdownRef.current?.contains(target);
+      const insideMobile = mobileMenuRef.current?.contains(target);
+
+      // Wenn weder im Desktop-Dropdown noch im Mobile-Menü geklickt wurde → schließen
+      if (!insideDesktop && !insideMobile) {
         setShowMenu(false);
       }
     };
 
-    if (showMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowMenu(false);
+    };
 
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
     };
   }, [showMenu]);
 
@@ -80,7 +91,7 @@ export default function Navigation() {
           href="/"
           className="text-2xl font-bold text-purple-400 hover:text-purple-300"
         >
-           MP Bankroll Cup
+          MP Bankroll Cup
         </Link>
 
         {/* Desktop Navigation */}
@@ -103,7 +114,7 @@ export default function Navigation() {
           >
             📋 Regeln
           </Link>
-          
+
           {/* ✅ ANMELDUNG - nur anzeigen wenn NOT im Leaderboard */}
           {!isInLeaderboard && !loading && (
             <Link
@@ -116,17 +127,23 @@ export default function Navigation() {
 
           {/* User Auth */}
           {session ? (
-            <div className="relative" ref={menuRef}>
+            <div className="relative" ref={dropdownRef}>
               <button
-                onClick={() => setShowMenu(!showMenu)}
+                onClick={() => setShowMenu((s) => !s)}
                 className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg font-bold transition"
+                aria-haspopup="menu"
+                aria-expanded={showMenu}
+                aria-controls="desktop-user-menu"
               >
                 <Menu size={20} />
                 {user?.name || "Benutzer"}
               </button>
 
               {showMenu && (
-                <div className="absolute right-0 mt-2 bg-slate-800 border border-slate-700 rounded-lg shadow-lg min-w-48 overflow-hidden">
+                <div
+                  id="desktop-user-menu"
+                  className="absolute right-0 mt-2 bg-slate-800 border border-slate-700 rounded-lg shadow-lg min-w-48 overflow-hidden"
+                >
                   {/* Close Button */}
                   <div className="px-4 py-3 border-b border-slate-700 bg-slate-900 flex justify-between items-center">
                     <p className="text-sm text-slate-400">Menü</p>
@@ -146,18 +163,20 @@ export default function Navigation() {
                   </div>
 
                   {/* Bankroll Update Link - nur für player, mod, admin UND im Leaderboard */}
-                  {isInLeaderboard && 
-                    (user?.role === "player" || user?.role === "mod" || user?.role === "admin") && (
-                    <button
-                      onClick={() => {
-                        window.location.href = "/bankroll-update";
-                        setShowMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-2 hover:bg-slate-700 text-blue-400 border-b border-slate-700 font-bold"
-                    >
-                      💰 Bankroll aktualisieren
-                    </button>
-                  )}
+                  {isInLeaderboard &&
+                    (user?.role === "player" ||
+                      user?.role === "mod" ||
+                      user?.role === "admin") && (
+                      <button
+                        onClick={() => {
+                          window.location.href = "/bankroll-update";
+                          setShowMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-slate-700 text-blue-400 border-b border-slate-700 font-bold"
+                      >
+                        💰 Bankroll aktualisieren
+                      </button>
+                    )}
 
                   {/* Dashboard Link - nur für Admin/Mod */}
                   {(user?.role === "admin" || user?.role === "mod") && (
@@ -200,8 +219,11 @@ export default function Navigation() {
         <div className="md:hidden flex items-center gap-2">
           {session ? (
             <button
-              onClick={() => setShowMenu(!showMenu)}
+              onClick={() => setShowMenu((s) => !s)}
               className="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg"
+              aria-haspopup="menu"
+              aria-expanded={showMenu}
+              aria-controls="mobile-user-menu"
             >
               {showMenu ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -218,7 +240,11 @@ export default function Navigation() {
 
       {/* Mobile Menu */}
       {showMenu && session && (
-        <div className="md:hidden bg-slate-800 border-t border-slate-700 p-4">
+        <div
+          id="mobile-user-menu"
+          ref={mobileMenuRef}
+          className="md:hidden bg-slate-800 border-t border-slate-700 p-4"
+        >
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-700">
             <p className="font-bold text-slate-300">Menü</p>
             <button
@@ -251,7 +277,7 @@ export default function Navigation() {
           >
             📋 Regeln
           </Link>
-          
+
           {/* ✅ ANMELDUNG Mobile - nur anzeigen wenn NOT im Leaderboard */}
           {!isInLeaderboard && !loading && (
             <Link
@@ -264,16 +290,18 @@ export default function Navigation() {
           )}
 
           {/* Mobile Bankroll Update - nur für player, mod, admin UND im Leaderboard */}
-          {isInLeaderboard && 
-            (user?.role === "player" || user?.role === "mod" || user?.role === "admin") && (
-            <Link
-              href="/bankroll-update"
-              onClick={() => setShowMenu(false)}
-              className="block text-blue-400 hover:text-blue-300 py-2 font-bold border-b border-slate-700 mb-2"
-            >
-              💰 Bankroll aktualisieren
-            </Link>
-          )}
+          {isInLeaderboard &&
+            (user?.role === "player" ||
+              user?.role === "mod" ||
+              user?.role === "admin") && (
+              <Link
+                href="/bankroll-update"
+                onClick={() => setShowMenu(false)}
+                className="block text-blue-400 hover:text-blue-300 py-2 font-bold border-b border-slate-700 mb-2"
+              >
+                💰 Bankroll aktualisieren
+              </Link>
+            )}
 
           {/* Mobile Dashboard Link - nur für Admin/Mod */}
           {(user?.role === "admin" || user?.role === "mod") && (
