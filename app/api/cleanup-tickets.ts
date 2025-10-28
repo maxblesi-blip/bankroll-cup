@@ -7,8 +7,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Security - Check secret token
-    const token = req.headers['x-cleanup-token'] || req.query.token;
+    // Security - Check secret token (Header first, then query)
+    const headerToken = req.headers['x-cleanup-token'];
+    const queryToken = req.query.token;
+
+    const token =
+      (Array.isArray(headerToken) ? headerToken[0] : headerToken)?.toString() ??
+      (Array.isArray(queryToken) ? queryToken[0] : queryToken)?.toString();
+
     const expectedToken = process.env.CLEANUP_SECRET_TOKEN;
 
     if (!expectedToken || token !== expectedToken) {
@@ -22,9 +28,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: error.message });
     }
 
+    // data wird jetzt verwendet -> kein noUnusedLocals Fehler
     return res.status(200).json({
       success: true,
       message: 'Cleanup completed',
+      result: data ?? null, // häufig: Anzahl gelöschter Zeilen
     });
   } catch (error) {
     console.error('Error cleaning up tickets:', error);
