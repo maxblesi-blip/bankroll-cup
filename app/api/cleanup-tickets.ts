@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Delete tickets closed more than 30 days ago
-    const { data, error } = await supabaseAdmin.rpc('cleanup_old_closed_tickets');
+    const { error } = await supabaseAdmin.rpc('cleanup_old_closed_tickets');
 
     if (error) {
       return res.status(500).json({ error: error.message });
