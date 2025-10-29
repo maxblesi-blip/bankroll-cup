@@ -334,7 +334,9 @@ useEffect(() => {
                         src={msg.image_url}
                         alt="Uploaded image"
                         className="max-w-xs rounded cursor-pointer hover:opacity-80"
-                        onClick={() => window.open(msg.image_url, "_blank")}
+                        onClick={() => {
+  if (msg.image_url) window.open(msg.image_url, "_blank");
+}}
                       />
                     </div>
                   )}
