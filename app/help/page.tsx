@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { HelpCircle, MessageSquare, AlertCircle, Zap } from "lucide-react";
+import { HelpCircle, MessageSquare, AlertCircle } from "lucide-react";
 
 export default function HelpPage() {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
