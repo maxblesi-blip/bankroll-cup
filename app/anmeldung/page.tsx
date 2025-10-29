@@ -16,7 +16,7 @@ export default function AnmeldungPage() {
   const [loading, setLoading] = useState(false);
   const [checkingMembership, setCheckingMembership] = useState(false);
   const [isDiscordMember, setIsDiscordMember] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string>("");
+  
   
   // ✅ SUCCESS State
   const [successData, setSuccessData] = useState<RegistrationData | null>(null);
