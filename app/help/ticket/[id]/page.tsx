@@ -89,30 +89,31 @@ export default function TicketChatPage() {
   }, [ticketId, session?.user]);
 
   // Real-time subscription
-  useEffect(() => {
-    if (!ticketId) return;
+useEffect(() => {
+  if (!ticketId) return;
 
-    const messagesSubscription = supabase
-      .from("ticket_messages")
-      .on("*", (payload) => {
-        if (payload.eventType === "INSERT") {
+  const channel = supabase
+    .channel(`ticket_${ticketId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'ticket_messages',
+        filter: `ticket_id=eq.${ticketId}`,
+      },
+      (payload) => {
+        if (payload.eventType === 'INSERT') {
           setMessages((prev) => [...prev, payload.new as TicketMessage]);
         }
-      })
-      .subscribe();
+      }
+    )
+    .subscribe();
 
-    const ticketSubscription = supabase
-      .from("tickets")
-      .on("UPDATE", (payload) => {
-        setTicket(payload.new as Ticket);
-      })
-      .subscribe();
-
-    return () => {
-      messagesSubscription.unsubscribe();
-      ticketSubscription.unsubscribe();
-    };
-  }, [ticketId]);
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [ticketId]);
 
   useEffect(() => {
     scrollToBottom();
